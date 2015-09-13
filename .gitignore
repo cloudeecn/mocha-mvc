@@ -1,4 +1,9 @@
 target/
+.idea/
+.settings/
+.project
+.classpath
+*.iml
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
