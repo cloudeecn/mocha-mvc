@@ -1,16 +1,21 @@
 package works.cirno.mocha.mvc;
 
+import works.cirno.mocha.mvc.result.ResultRenderer;
+
 /**
  *
  */
 public interface ConfigBuilder {
-    String getPath();
+	String getPath();
 
-    ConfigBuilder with(Class<?> controller, String methodName);
+	ConfigBuilder with(Class<?> controller, String methodName);
 
-    ConfigBuilder method(String method);
+	ConfigBuilder method(String method);
 
-    <T extends Throwable> ConfigBuilder exception(Class<T> exception, ExceptionHandler<T> handler);
+	<T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer result);
 
-    <T extends Throwable> ConfigBuilder exception(Class<T> exception, Result result);
+	ServletResultRendererConfig forward(String resultName);
+
+	ServletResultRendererConfig redirect(String resultName);
+
 }

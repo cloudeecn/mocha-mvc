@@ -7,5 +7,5 @@ import javax.servlet.http.HttpServletResponse;
  *
  */
 public interface ExceptionHandler<T extends Throwable> {
-    void handle(T exception, HttpServletRequest req, HttpServletResponse resp);
+	void handle(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, T exception);
 }

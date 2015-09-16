@@ -1,11 +1,11 @@
 package works.cirno.mocha.mvc;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -23,6 +23,7 @@ import works.cirno.mocha.mvc.parameter.value.ParameterSource;
 import works.cirno.mocha.mvc.parameter.value.RequestParameterSource;
 import works.cirno.mocha.mvc.parameter.value.ValueConverter;
 import works.cirno.mocha.mvc.parameter.value.ValueConverterUtil;
+import works.cirno.mocha.mvc.result.ResultRenderer;
 
 /**
  *
@@ -47,9 +48,9 @@ public class InvokeTarget {
 	private final Class<?> controllerClass;
 	// private final String methodName;
 
-	private HashMap<String, Result> resultMapping = new HashMap<>();
-	private TreeMap<ComparableClassWrapper, ExceptionHandler<?>> exceptionHandlers = new TreeMap<>();
+	private TreeMap<ComparableClassWrapper, ResultRenderer> exceptionHandlers = new TreeMap<>();
 	private Set<String> groupNames;
+	private List<ResultRenderer> resultRenderers;
 
 	private Object controller;
 	private Method method;
@@ -84,22 +85,17 @@ public class InvokeTarget {
 		parameters = new Parameter[this.method.getParameterTypes().length];
 	}
 
-	HashMap<String, Result> getResultMapping() {
-		return resultMapping;
-	}
-
-	void setResultMapping(HashMap<String, Result> resultMapping) {
-		this.resultMapping.clear();
-		this.resultMapping.putAll(resultMapping);
-	}
-
-	void setExceptionHandlers(TreeMap<ComparableClassWrapper, ExceptionHandler<?>> exceptionHandlers) {
+	void setExceptionHandlers(TreeMap<ComparableClassWrapper, ResultRenderer> exceptionHandlers) {
 		this.exceptionHandlers.clear();
 		this.exceptionHandlers.putAll(exceptionHandlers);
 	}
 
 	void setParameters(Parameter[] parameters) {
 		this.parameters = parameters.clone();
+	}
+
+	void setResultRenderers(List<ResultRenderer> resultRenderers) {
+		this.resultRenderers = new ArrayList<>(resultRenderers);
 	}
 
 	public void setGroupNames(Set<String> groupNames) {
@@ -124,6 +120,14 @@ public class InvokeTarget {
 
 	public int parameterCount() {
 		return parameters.length;
+	}
+
+	public List<ResultRenderer> getResultRenderers() {
+		return resultRenderers;
+	}
+
+	public Logger log() {
+		return log;
 	}
 
 	public void invoke(InvokeContext context, HttpServletRequest req, HttpServletResponse resp) {
@@ -189,74 +193,62 @@ public class InvokeTarget {
 		} catch (IOException e) {
 			log.error("Exception occurred binding parameters {}{}", req.getRequestURI(),
 					req.getQueryString() != null ? req.getQueryString() : "", e);
-			handleException(e, req, resp);
+			handleException(context, req, resp, e);
 		}
 		try {
 			Object result = method.invoke(controller, invokeParams);
-			handleResult(result, req, resp);
+			handleResult(context, req, resp, result);
 		} catch (Throwable t) {
 			log.error("Exception occurred processing request {}{}", req.getRequestURI(),
 					req.getQueryString() != null ? req.getQueryString() : "", t);
-			handleException(t, req, resp);
+			handleException(context, req, resp, t);
 		}
 	}
 
-	public void handleResult(Object o, HttpServletRequest req, HttpServletResponse resp) {
-		if (o != null) {
-			if (o instanceof Result) {
-				Result result = (Result) o;
-				try {
-					result.renderResult(this, req, resp);
-				} catch (Exception e) {
-					log.error("Exception occurred processing result of request {}{}", req.getRequestURI(),
-							req.getQueryString() != null ? req.getQueryString() : "", e);
-					handleException(e, req, resp);
+	public void handleResult(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Object resultObj) {
+		if (resultObj != null && resultObj instanceof ResultRenderer) {
+			ResultRenderer result = (ResultRenderer) resultObj;
+			try {
+				if (!result.renderResult(ctx, req, resp, result)) {
+					handleException(ctx, req, resp,
+							new IllegalStateException("Can't handle specified renderer: " + resultObj));
 				}
-			} else if (o instanceof String) {
-				Result result = resultMapping.get(o);
-				if (result != null) {
-					try {
-						result.renderResult(this, req, resp);
-					} catch (Exception e) {
-						log.error("Exception occurred processing result of request {}{}", req.getRequestURI(),
-								req.getQueryString() != null ? req.getQueryString() : "", e);
-						handleException(e, req, resp);
-					}
-				} else {
-					log.error("Can't find result named [{}]", o);
-					throw new IllegalArgumentException("Result " + o + " not found");
+			} catch (Exception e) {
+				log.error("Exception occurred processing result of request {}{}", req.getRequestURI(),
+						req.getQueryString() != null ? req.getQueryString() : "", e);
+				handleException(ctx, req, resp, e);
+			}
+		} else {
+			boolean handled = false;
+			for (ResultRenderer renderer : resultRenderers) {
+				if (renderer.renderResult(ctx, req, resp, resultObj)) {
+					handled = true;
+					break;
 				}
-			} else if (o instanceof Number) {
-				try {
-					resp.sendError(((Number) o).intValue());
-				} catch (IOException e) {
-					log.warn("Can't send error page to client due to IOException", e);
-				}
-			} else if (o instanceof InputStream) {
-				try (InputStream is = (InputStream) o; OutputStream os = resp.getOutputStream()) {
-					int size = is.available();
-					if (size < 4096) {
-						size = 4096;
-					} else if (size > 16384) {
-						size = 16384;
-					}
-					byte[] buf = new byte[size];
-					int read;
-					while ((read = is.read(buf)) >= 0) {
-						os.write(buf, 0, read);
-					}
-				} catch (IOException e) {
-					log.error("Can't send stream data to client");
-				}
+			}
+			if (!handled) {
+				handleException(ctx, req, resp,
+						new IllegalStateException("Can't handle specified result: " + resultObj));
 			}
 		}
 	}
 
-	public void handleException(Throwable e, HttpServletRequest req, HttpServletResponse resp) {
-		try {
-			resp.sendError(500, "Server internal error");
-		} catch (IOException ex) {
-			log.warn("Can't send error page to client due to IOException", ex);
+	public void handleException(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Throwable e) {
+		Class<? extends Throwable> exceptionType = e.getClass();
+		Entry<ComparableClassWrapper, ResultRenderer> entry = exceptionHandlers
+				.ceilingEntry(new ComparableClassWrapper(exceptionType));
+		if (entry != null && entry.getKey().getContent().isAssignableFrom(exceptionType)) {
+			try {
+				entry.getValue().renderResult(ctx, req, resp, e);
+			} catch (Throwable ex) {
+				log.error("Exception occored handling exception: {}", e, ex);
+			}
+		} else {
+			try {
+				resp.sendError(500, "Server internal error");
+			} catch (Throwable ex) {
+				log.warn("Can't send error page to client due to IOException, exception is {}", e, ex);
+			}
 		}
 	}
 }

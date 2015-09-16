@@ -1,2 +1,4 @@
 # mocha-mvc
-A lightweight WebMVC framework
+Just another lightweight WebMVC framework
+
+
