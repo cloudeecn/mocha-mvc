@@ -7,7 +7,7 @@ import java.lang.reflect.Method;
 /**
  *
  */
-public class Java8ParameterAnalyzer implements ParameterAnalyzer {
+public class JDK8ParameterAnalyzer implements ParameterAnalyzer {
     @Override
     public Parameter[] getParameters(InvokeTarget target) {
         Method method = target.getMethod();

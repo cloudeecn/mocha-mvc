@@ -29,7 +29,7 @@ public class ExampleController {
                 .attribute("date", new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
     }
 
-    public View hello3(@NamedParam("user") TitledUser user) {
+	public View hello3(@NamedParam("user") TitledUser user) {
         return new View("success")
                 .attribute("user", user)
                 .attribute("date", new SimpleDateFormat("yyyy-MM-dd").format(new Date()));

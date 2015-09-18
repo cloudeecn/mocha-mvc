@@ -1,80 +1,65 @@
 package works.cirno.mocha.mvc;
 
+import java.util.ArrayList;
+import java.util.Collections;
+
 import works.cirno.mocha.mvc.factory.BasicObjectFactory;
 import works.cirno.mocha.mvc.factory.ObjectFactory;
 import works.cirno.mocha.mvc.parameter.name.AnnotationParameterAnalyzer;
 import works.cirno.mocha.mvc.parameter.name.ParameterAnalyzer;
-import works.cirno.mocha.mvc.resolver.InvokeTargetResolver;
-import works.cirno.mocha.mvc.resolver.RegexInvokeTargetResolver;
-
-import java.util.ArrayList;
-import java.util.Collections;
 
 /**
  *
  */
 public abstract class MVCConfigurator {
 
-    protected static final String SUCCESS = "success";
-    protected static final String FAILED = "failed";
+	protected static final String SUCCESS = "success";
+	protected static final String FAILED = "failed";
 
-    private final ArrayList<ConfigBuilderImpl> configBuilders = new ArrayList<>();
-    private ObjectFactory objectFactory;
-    private InvokeTargetResolver invokeTargetResolver;
-    private ParameterAnalyzer parameterAnalyzer;
+	private MVCConfig config = new MVCConfig();
+	private ArrayList<ConfigBuilderImpl> configBuilders = new ArrayList<>();
 
-    protected void setObjectFactory(ObjectFactory objectFactory) {
-        this.objectFactory = objectFactory;
-    }
+	{
+		config.injectBy(defaultObjectFactory());
+		config.parameterNamedBy(defaultParameterAnalyzer());
+	}
 
-    protected void setInvokeTargetResolver(InvokeTargetResolver invokeTargetResolver) {
-        this.invokeTargetResolver = invokeTargetResolver;
-    }
+	protected ObjectFactory defaultObjectFactory() {
+		return new BasicObjectFactory();
+	}
 
-    protected void setParameterAnalyzer(ParameterAnalyzer parameterAnalyzer) {
-        this.parameterAnalyzer = parameterAnalyzer;
-    }
+	protected ParameterAnalyzer defaultParameterAnalyzer() {
+		return new AnnotationParameterAnalyzer();
+	}
 
-    protected ConfigBuilder serve(String path) {
-        ConfigBuilderImpl builder = new ConfigBuilderImpl(path);
-        configBuilders.add(builder);
-        return builder;
-    }
+	protected ConfigBuilder serve(String path) {
+		ConfigBuilderImpl builder = new ConfigBuilderImpl(path, config);
+		configBuilders.add(builder);
+		return builder;
+	}
 
-    protected void include(MVCConfigurator configurator) {
-        configurator.configure();
-        configBuilders.addAll(configurator.configBuilders);
-    }
+	protected ConfigBuilder serve(String path, String method) {
+		ConfigBuilderImpl builder = new ConfigBuilderImpl(path, method, config);
+		configBuilders.add(builder);
+		return builder;
+	}
 
-    Iterable<ConfigBuilderImpl> getConfigBuilders() {
-        return Collections.unmodifiableCollection(configBuilders);
-    }
+	protected void include(MVCConfigurator configurator) {
+		configurator.configure();
+		configBuilders.addAll(configurator.configBuilders);
+	}
 
-    ObjectFactory getObjectFactory() {
-        return objectFactory;
-    }
+	protected ConfigBuilder all(Runnable r) {
+		MVCConfig nestedConfig = new MVCConfig(config);
+		this.config = nestedConfig;
+		r.run();
+		config = config.getParent();
+		return nestedConfig;
+	}
 
-    InvokeTargetResolver getInvokeTargetResolver() {
-        return invokeTargetResolver;
-    }
+	Iterable<ConfigBuilderImpl> getConfigBuilders() {
+		return Collections.unmodifiableCollection(configBuilders);
+	}
 
-    ParameterAnalyzer getParameterAnalyzer() {
-        return parameterAnalyzer;
-    }
-
-    void finishConfigure() {
-        if (objectFactory == null) {
-            objectFactory = new BasicObjectFactory();
-        }
-
-        if (invokeTargetResolver == null) {
-            invokeTargetResolver = new RegexInvokeTargetResolver();
-        }
-
-        if (parameterAnalyzer == null) {
-            parameterAnalyzer = new AnnotationParameterAnalyzer();
-        }
-    }
-
-    public abstract void configure();
+	public abstract void configure();
 }

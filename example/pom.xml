@@ -10,6 +10,54 @@
 	<name>Mocha MVC example</name>
 	<packaging>war</packaging>
 
+	<profiles>
+		<profile>
+			<id>jdk8-toolchain</id>
+			<activation>
+				<jdk>(,1.8)</jdk>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-toolchains-plugin</artifactId>
+						<version>1.1</version>
+						<executions>
+							<execution>
+								<phase>validate</phase>
+								<goals>
+									<goal>toolchain</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<toolchains>
+								<jdk>
+									<version>[1.8,)</version>
+								</jdk>
+							</toolchains>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<compilerArgs>
+						<arg>-parameters</arg>
+					</compilerArgs>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
 	<dependencies>
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -26,16 +74,28 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.ow2.asm</groupId>
+			<artifactId>asm-tree</artifactId>
+			<version>5.0.4</version>
+		</dependency>
+
+		<dependency>
 			<groupId>works.cirno.mocha</groupId>
-			<artifactId>mvc-core</artifactId>
+			<artifactId>mvc-asm</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
+
 		<dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>1.7.12</version>
-        </dependency>
+			<groupId>works.cirno.mocha</groupId>
+			<artifactId>mvc-jdk8</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.7.12</version>
+		</dependency>
 
 		<dependency>
 			<groupId>commons-io</groupId>

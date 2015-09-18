@@ -9,16 +9,16 @@ import works.cirno.mocha.mvc.InvokeTarget;
  */
 public class Java8ParameterAnalyzerTest {
 
-    private ThreadLocal<Java8ParameterAnalyzer> analyzer = new ThreadLocal<Java8ParameterAnalyzer>(){
+    private ThreadLocal<JDK8ParameterAnalyzer> analyzer = new ThreadLocal<JDK8ParameterAnalyzer>(){
         @Override
-        protected Java8ParameterAnalyzer initialValue() {
-            return new Java8ParameterAnalyzer();
+        protected JDK8ParameterAnalyzer initialValue() {
+            return new JDK8ParameterAnalyzer();
         }
     };
 
     @Test
     public void testNamedArguments1() throws Exception{
-        Java8ParameterAnalyzer analyzer = this.analyzer.get();
+        JDK8ParameterAnalyzer analyzer = this.analyzer.get();
         Class<?> controllerClass = TestController.class;
         Object controller = controllerClass.newInstance();
 
@@ -29,7 +29,7 @@ public class Java8ParameterAnalyzerTest {
 
     @Test
     public void testNamedArguments2() throws Exception{
-        Java8ParameterAnalyzer analyzer = this.analyzer.get();
+        JDK8ParameterAnalyzer analyzer = this.analyzer.get();
         Class<?> controllerClass = TestController.class;
         Object controller = controllerClass.newInstance();
 
@@ -44,7 +44,7 @@ public class Java8ParameterAnalyzerTest {
 
     @Test
     public void testNamedArguments3() throws Exception{
-        Java8ParameterAnalyzer analyzer = this.analyzer.get();
+        JDK8ParameterAnalyzer analyzer = this.analyzer.get();
         Class<?> controllerClass = TestController.class;
         Object controller = controllerClass.newInstance();
 
@@ -59,7 +59,7 @@ public class Java8ParameterAnalyzerTest {
 
     @Test
     public void testNamedArguments4() throws Exception{
-        Java8ParameterAnalyzer analyzer = this.analyzer.get();
+        JDK8ParameterAnalyzer analyzer = this.analyzer.get();
         Class<?> controllerClass = TestController.class;
         Object controller = controllerClass.newInstance();
 

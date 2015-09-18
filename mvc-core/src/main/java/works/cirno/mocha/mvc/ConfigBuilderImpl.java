@@ -1,81 +1,95 @@
 package works.cirno.mocha.mvc;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import works.cirno.mocha.mvc.result.CodeResultRenderer;
+import works.cirno.mocha.mvc.factory.ObjectFactory;
+import works.cirno.mocha.mvc.parameter.name.ParameterAnalyzer;
 import works.cirno.mocha.mvc.result.ResultRenderer;
-import works.cirno.mocha.mvc.result.ResultType;
-import works.cirno.mocha.mvc.result.ServletResultRenderer;
 
 /**
  *
  */
 class ConfigBuilderImpl implements ConfigBuilder {
 
-	String path;
-	String method;
-	Class<?> controller;
-	String methodName;
-	TreeMap<ComparableClassWrapper, ResultRenderer> handlers = new TreeMap<>();
-	private ServletResultRenderer servletResultRenderer = new ServletResultRenderer();
-	List<ResultRenderer> resultRenderers = new ArrayList<>(
-			Arrays.asList(new CodeResultRenderer(), servletResultRenderer));
-	HashMap<String, ServletResultRendererConfigImpl> pendingServletResultRendererConfig = new HashMap<>();
+	private String path;
+	private String method;
 
-	ConfigBuilderImpl(String path) {
+	private MVCConfig config;
+
+	ConfigBuilderImpl(String path, MVCConfig config) {
+		this(path, null, config);
+	}
+
+	ConfigBuilderImpl(String path, String method, MVCConfig config) {
 		this.path = path;
+		this.method = method;
+		this.config = new MVCConfig(config);
 	}
 
-	void finishConfigure() {
-		for (Entry<String, ServletResultRendererConfigImpl> entry : pendingServletResultRendererConfig.entrySet()) {
-			servletResultRenderer.addResult(entry.getKey(), entry.getValue().getResultType(),
-					entry.getValue().getPath());
-		}
-	}
-
-	@Override
-	public String getPath() {
+	String getPath() {
 		return path;
 	}
 
-	@Override
+	String getMethod() {
+		return method;
+	}
+
+	Class<?> getController() {
+		return config.getController();
+	}
+
+	String getMethodName() {
+		return config.getMethodName();
+	}
+
+	ObjectFactory getObjectFactory() {
+		return config.getObjectFactory();
+	}
+
+	ParameterAnalyzer getParameterAnalyzer() {
+		return config.getParameterAnalyzer();
+	}
+
+	TreeMap<ComparableClassWrapper, ResultRenderer> getHandlers() {
+		return config.getHandlers();
+	}
+
+	ArrayList<ResultRenderer> getResultRenderers() {
+		return config.getResultRenderers();
+	}
+
+	HashMap<String, ServletResultRendererConfigImpl> getPendingServletResultRendererConfig() {
+		return config.getPendingServletResultRendererConfig();
+	}
+
 	public ConfigBuilder with(Class<?> controller, String methodName) {
-		this.controller = controller;
-		this.methodName = methodName;
-		return this;
+		return config.with(controller, methodName);
 	}
 
-	@Override
-	public ConfigBuilder method(String method) {
-		this.method = method;
-		return this;
+	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer result) {
+		return config.exception(exception, result);
 	}
 
-	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer handler) {
-		ResultRenderer old = handlers.put(new ComparableClassWrapper(exception), handler);
-		if (old != null) {
-			throw new IllegalArgumentException("Exception " + old + " already handled");
-		}
-		return this;
+	public ConfigBuilder injectBy(ObjectFactory factory) {
+		return config.injectBy(factory);
 	}
 
-	@Override
 	public ServletResultRendererConfig forward(String resultName) {
-		ServletResultRendererConfigImpl conf = new ServletResultRendererConfigImpl(this, ResultType.forward);
-		pendingServletResultRendererConfig.put(resultName, conf);
-		return conf;
+		return config.forward(resultName);
 	}
 
-	@Override
 	public ServletResultRendererConfig redirect(String resultName) {
-		ServletResultRendererConfigImpl conf = new ServletResultRendererConfigImpl(this, ResultType.redirect);
-		pendingServletResultRendererConfig.put(resultName, conf);
-		return conf;
+		return config.redirect(resultName);
+	}
+
+	public ConfigBuilder renderer(ResultRenderer renderer) {
+		return config.renderer(renderer);
+	}
+
+	public ConfigBuilder parameterNamedBy(ParameterAnalyzer pa) {
+		return config.parameterNamedBy(pa);
 	}
 
 }

@@ -16,6 +16,12 @@ import works.cirno.mocha.mvc.InvokeContext;
 public class CodeResultRenderer implements ResultRenderer {
 	private static Logger log = LoggerFactory.getLogger(CodeResultRenderer.class);
 
+	private static final CodeResultRenderer instance = new CodeResultRenderer();
+
+	public static CodeResultRenderer instance() {
+		return instance;
+	}
+
 	@Override
 	public boolean renderResult(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Object resultObj) {
 		if (resultObj instanceof Number) {

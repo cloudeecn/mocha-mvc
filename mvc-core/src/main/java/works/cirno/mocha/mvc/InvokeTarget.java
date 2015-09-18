@@ -227,6 +227,8 @@ public class InvokeTarget {
 				}
 			}
 			if (!handled) {
+				log.error("Exception occurred processing result of request {}{}, Can't handle specified result: {}",
+						req.getRequestURI(), req.getQueryString() != null ? req.getQueryString() : "", resultObj);
 				handleException(ctx, req, resp,
 						new IllegalStateException("Can't handle specified result: " + resultObj));
 			}
