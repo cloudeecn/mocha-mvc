@@ -209,7 +209,7 @@ public class InvokeTarget {
 		if (resultObj != null && resultObj instanceof ResultRenderer) {
 			ResultRenderer result = (ResultRenderer) resultObj;
 			try {
-				if (!result.renderResult(ctx, req, resp, result)) {
+				if (!result.renderResult(ctx, req, resp, null)) {
 					handleException(ctx, req, resp,
 							new IllegalStateException("Can't handle specified renderer: " + resultObj));
 				}
