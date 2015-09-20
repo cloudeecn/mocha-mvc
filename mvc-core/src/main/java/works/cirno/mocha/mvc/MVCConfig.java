@@ -11,7 +11,7 @@ import works.cirno.mocha.mvc.parameter.name.ParameterAnalyzer;
 import works.cirno.mocha.mvc.result.ResultRenderer;
 import works.cirno.mocha.mvc.result.ResultType;
 
-public class MVCConfig implements ConfigBuilder {
+class MVCConfig implements ConfigBuilder {
 	private MVCConfig parent;
 
 	private Class<?> controller;

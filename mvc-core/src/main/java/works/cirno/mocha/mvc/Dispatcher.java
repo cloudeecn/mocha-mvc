@@ -7,9 +7,6 @@ import java.util.Map.Entry;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import works.cirno.mocha.mvc.factory.ObjectFactory;
 import works.cirno.mocha.mvc.resolver.InvokeTargetCriteria;
 import works.cirno.mocha.mvc.resolver.InvokeTargetResolver;
@@ -22,8 +19,6 @@ import works.cirno.mocha.mvc.result.ServletResultRenderer;
  *
  */
 public abstract class Dispatcher {
-
-	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	private InvokeTargetResolver resolver = new RegexInvokeTargetResolver();
 
