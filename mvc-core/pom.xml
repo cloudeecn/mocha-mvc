@@ -24,9 +24,10 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.jdeferred</groupId>
-			<artifactId>jdeferred-core</artifactId>
-			<version>1.2.4</version>
-		</dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-tree</artifactId>
+            <version>4.2</version>
+            <optional>true</optional>
+        </dependency>
 	</dependencies>
 </project>

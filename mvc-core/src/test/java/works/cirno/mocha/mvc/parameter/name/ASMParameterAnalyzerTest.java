@@ -19,7 +19,7 @@ public class ASMParameterAnalyzerTest {
     @Test
     public void testNamedArguments1() throws Exception{
         ASMParameterAnalyzer analyzer = this.analyzer.get();
-        Class<?> controllerClass = TestController.class;
+        Class<?> controllerClass = ASMTestController.class;
         Object controller = controllerClass.newInstance();
 
         InvokeTarget target = new InvokeTarget(null, controllerClass, "method1", controller);
@@ -30,7 +30,7 @@ public class ASMParameterAnalyzerTest {
     @Test
     public void testNamedArguments2() throws Exception{
         ASMParameterAnalyzer analyzer = this.analyzer.get();
-        Class<?> controllerClass = TestController.class;
+        Class<?> controllerClass = ASMTestController.class;
         Object controller = controllerClass.newInstance();
 
         InvokeTarget target = new InvokeTarget(null, controllerClass, "method2", controller);
@@ -45,7 +45,7 @@ public class ASMParameterAnalyzerTest {
     @Test
     public void testNamedArguments3() throws Exception{
         ASMParameterAnalyzer analyzer = this.analyzer.get();
-        Class<?> controllerClass = TestController.class;
+        Class<?> controllerClass = ASMTestController.class;
         Object controller = controllerClass.newInstance();
 
         InvokeTarget target = new InvokeTarget(null, controllerClass, "method3", controller);
@@ -60,7 +60,7 @@ public class ASMParameterAnalyzerTest {
     @Test
     public void testNamedArguments4() throws Exception{
         ASMParameterAnalyzer analyzer = this.analyzer.get();
-        Class<?> controllerClass = TestController.class;
+        Class<?> controllerClass = ASMTestController.class;
         Object controller = controllerClass.newInstance();
 
         InvokeTarget target = new InvokeTarget(null, controllerClass, "method4", controller);

@@ -1,6 +1,6 @@
 package works.cirno.mocha.mvc;
 
-import works.cirno.mocha.mvc.parameter.name.TestController;
+import works.cirno.mocha.mvc.parameter.name.ASMTestController;
 
 /**
  *
@@ -10,7 +10,7 @@ public class MockInvokeTarget extends InvokeTarget {
     private String testData;
 
     public MockInvokeTarget(String testData) {
-        super(null, TestController.class, "method1", new TestController());
+        super(null, ASMTestController.class, "method1", new ASMTestController());
         this.testData = testData;
     }
 

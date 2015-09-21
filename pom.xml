@@ -64,7 +64,6 @@
     <modules>
         <module>mvc-core</module>
         <module>mvc-jdk8</module>
-        <module>mvc-asm</module>
 	<module>example</module>
     </modules>
     <dependencies>

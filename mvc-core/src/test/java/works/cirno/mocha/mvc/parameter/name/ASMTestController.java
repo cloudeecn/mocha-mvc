@@ -3,7 +3,7 @@ package works.cirno.mocha.mvc.parameter.name;
 /**
  *
  */
-public class TestController {
+public class ASMTestController {
     public void methodD() {
 
     }

@@ -81,12 +81,6 @@
 
 		<dependency>
 			<groupId>works.cirno.mocha</groupId>
-			<artifactId>mvc-asm</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>works.cirno.mocha</groupId>
 			<artifactId>mvc-jdk8</artifactId>
 			<version>${project.version}</version>
 		</dependency>
