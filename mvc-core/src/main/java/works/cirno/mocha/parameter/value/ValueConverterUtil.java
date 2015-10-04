@@ -6,50 +6,54 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import works.cirno.mocha.InvokeContext;
+
 public final class ValueConverterUtil {
 	private final static Logger log = LoggerFactory
 			.getLogger(ValueConverterUtil.class);
 	private final static ConcurrentHashMap<Class<?>, Boolean> notBean = new ConcurrentHashMap<>();
 
-	public static final Collection<? extends ValueConverter> DEFAULT_VALUE_CONVERTERS = Arrays
-			.asList(new RawInputStreamConverter(), new PartConverter(), new DefaultValueConverter());
-
-	public static Object convert(Collection<? extends ValueConverter> valueConverters,
-			Collection<? extends ParameterSource> parameterSources, Class<?> type,
+	public static Object convert(InvokeContext ctx, Collection<? extends ValueConverter> valueConverters,
+			ParameterSourcePool sourcePool, Class<?> type,
 			String key) {
-		Object result = ValueConverter.UNSUPPORTED_TYPE;
-
-		boolean typeSupported = false;
-		for (ValueConverter valueConverter : valueConverters) {
-			for (ParameterSource source : parameterSources) {
-				result = valueConverter.getValue(type, source, key);
-				if (result == ValueConverter.UNSUPPORTED_TYPE) {
-					break;
-				} else if (result == ValueConverter.UNSUPPORTED_VALUE) {
-					typeSupported = true;
-				} else {
-					if (log.isDebugEnabled()) {
-						log.debug("CONV param[{}]({})=({})=>{} ", key,
-								source.getClass(), valueConverter.getClass(),
-								result);
-					}
-					return result;
-				}
+		Object result = convertSingle(ctx, valueConverters, sourcePool, type, key);
+		if (result == ValueConverter.UNSUPPORTED_TYPE) {
+			if (type.isPrimitive() || type.isArray() || type.isEnum()) {
+				result = null;
+			} else {
+				result = convertBean(ctx, valueConverters, sourcePool, type, key);
 			}
 		}
-		return typeSupported == true ? ValueConverter.UNSUPPORTED_VALUE : result;
+		return result;
 	}
 
-	public static Object convertBean(Collection<? extends ValueConverter> valueConverters,
-			Collection<? extends ParameterSource> parameterSources, Class<?> type,
-			String paramName) {
+	public static Object convertSingle(InvokeContext ctx, Collection<? extends ValueConverter> valueConverters,
+			ParameterSourcePool sourcePool, Class<?> type,
+			String key) {
+		boolean tryAsBean = true;
+		for (ValueConverter converter : valueConverters) {
+			Object ret = converter.getValue(ctx, type, sourcePool, key);
+			if (ret == null) {
+				tryAsBean = false;
+			} else if (ret != ValueConverter.UNSUPPORTED_TYPE) {
+				return ret;
+			}
+		}
+		if (tryAsBean) {
+			return ValueConverter.UNSUPPORTED_TYPE;
+		}
+		return null;
+	}
+
+	public static Object convertBean(InvokeContext ctx, Collection<? extends ValueConverter> valueConverters,
+			ParameterSourcePool sourcePool, Class<?> type,
+			String key) {
 		if (notBean.contains(type)) {
 			return null;
 		} else {
@@ -66,36 +70,26 @@ public final class ValueConverterUtil {
 						.getPropertyDescriptors();
 				StringBuilder nameBuilder = new StringBuilder(64);
 				for (PropertyDescriptor pd : propertyDescriptors) {
-					if(pd.getWriteMethod() != null){
+					if (pd.getWriteMethod() != null) {
 						Class<?> propertyType = pd.getPropertyType();
 						if (propertyType != null) {
 							String propertyName = pd.getName();
-							log.debug("Setting {}.{}...", paramName, propertyName);
+							log.debug("Setting {}.{}...", key, propertyName);
 							nameBuilder.setLength(0);
-							nameBuilder.append(paramName).append('.')
+							nameBuilder.append(key).append('.')
 									.append(propertyName);
 							String name = nameBuilder.toString();
-							log.debug("Setting {}.{}... Trying parameter {}", paramName, propertyName, name);
-							Object value = convert(valueConverters,
-									parameterSources, propertyType,
+							log.debug("Setting {}.{}... Trying parameter {}", key, propertyName, name);
+							Object value = convert(ctx, valueConverters,
+									sourcePool, propertyType,
 									name);
-							if (value == ValueConverter.UNSUPPORTED_TYPE
-									|| value == ValueConverter.UNSUPPORTED_VALUE) {
-								nameBuilder.setLength(0);
-								nameBuilder.append(propertyName);
-								name = nameBuilder.toString();
-								log.debug("Setting {}.{}... Trying parameter {}", paramName, propertyName, name);
-								value = convert(valueConverters, parameterSources,
-										propertyType, name);
-							}
-							if (value != ValueConverter.UNSUPPORTED_TYPE
-									&& value != ValueConverter.UNSUPPORTED_VALUE) {
-								log.debug("Setting {}.{}... Value {} got", paramName, propertyName, value);
+							if (value != null) {
+								log.debug("Setting {}.{}... Value {} got", key, propertyName, value);
 								// bind
 								Method writeMethod = pd.getWriteMethod();
 								writeMethod.invoke(result, value);
 							} else {
-								log.debug("Setting {}.{}... Value NOT got", paramName, propertyName);
+								log.debug("Setting {}.{}... Value NOT got", key, propertyName);
 							}
 						}
 					}

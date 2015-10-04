@@ -8,10 +8,10 @@ import com.google.inject.Key;
 import com.google.inject.name.Names;
 
 import works.cirno.mocha.MVCConfigurator;
-import works.cirno.mocha.MVCFactory;
+import works.cirno.mocha.ObjectFactory;
 
 @Singleton
-public class GuiceMVCFactory implements MVCFactory {
+public class GuiceMVCFactory implements ObjectFactory {
 
 	@Inject
 	private Injector injector;
@@ -21,7 +21,7 @@ public class GuiceMVCFactory implements MVCFactory {
 	}
 
 	@Override
-	public <T> T getControllerInstance(Class<T> clazz) {
+	public <T> T getInstance(Class<T> clazz) {
 		return injector.getInstance(clazz);
 	}
 
@@ -31,7 +31,7 @@ public class GuiceMVCFactory implements MVCFactory {
 	}
 
 	@Override
-	public Object getControllerInstance(String name) {
+	public Object getInstance(String name) {
 		return injector.getInstance(Key.get(Object.class, Names.named(name)));
 	}
 }

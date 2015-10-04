@@ -9,10 +9,12 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.web.context.support.SpringBeanAutowiringSupport;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 @Named
 @Singleton
-public class SpringMVCFactory implements MVCFactory, ApplicationContextAware {
+public class SpringMVCFactory implements ObjectFactory, ApplicationContextAware {
 	private static final Logger log = LoggerFactory.getLogger(SpringMVCFactory.class);
 	private ApplicationContext applicationContext;
 
@@ -22,7 +24,7 @@ public class SpringMVCFactory implements MVCFactory, ApplicationContextAware {
 	}
 
 	@Override
-	public <T> T getControllerInstance(Class<T> clazz) {
+	public <T> T getInstance(Class<T> clazz) {
 		return applicationContext.getBean(clazz);
 	}
 
@@ -37,12 +39,12 @@ public class SpringMVCFactory implements MVCFactory, ApplicationContextAware {
 	}
 
 	@Override
-	public Object getControllerInstance(String name) {
+	public Object getInstance(String name) {
 		return applicationContext.getBean(name);
 	}
 
-	public static MVCFactory fromCustomApplicationContext(ApplicationContext ac) {
-		MVCFactory factory;
+	public static ObjectFactory fromCustomApplicationContext(ApplicationContext ac) {
+		ObjectFactory factory;
 		try {
 			factory = ac.getBean(SpringMVCFactory.class);
 			log.info("SpringObjectFactory got from application context");
@@ -51,6 +53,17 @@ public class SpringMVCFactory implements MVCFactory, ApplicationContextAware {
 			log.info("SpringObjectFactory created");
 		}
 		return factory;
+	}
+
+	@Override
+	public <T> T getInstance(TypeOrInstance<T> param) {
+		switch (param.getInjectBy()) {
+		case INSTANCE:
+			break;
+		case NAME_TYPE:
+		case TYPE:
+		}
+		return null;
 	}
 
 }

@@ -29,13 +29,14 @@ public class DispatcherFilter extends Dispatcher implements Filter {
 		log.info("Initializing dispatcher servlet {}", config.getFilterName());
 		try {
 			HashMap<String, String> initParameters = new HashMap<>();
+			@SuppressWarnings("unchecked")
 			Enumeration<String> keys = config.getInitParameterNames();
-			while(keys.hasMoreElements()){
+			while (keys.hasMoreElements()) {
 				String key = keys.nextElement();
 				String value = config.getInitParameter(key);
 				initParameters.put(key, value);
 			}
-			
+
 			init(config.getFilterName(), config.getServletContext(), initParameters);
 			log.info("Dispatcher filter {} initialized in {}ms", config.getFilterName(),
 					System.currentTimeMillis() - begin);

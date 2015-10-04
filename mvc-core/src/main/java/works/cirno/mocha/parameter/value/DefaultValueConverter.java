@@ -4,19 +4,12 @@ import java.beans.PropertyEditor;
 import java.beans.PropertyEditorManager;
 import java.lang.reflect.Array;
 
+import works.cirno.mocha.InvokeContext;
+
 public class DefaultValueConverter implements ValueConverter {
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private Object getEnumValue(Class<? extends Enum> type, String textValue) {
-		return Enum.valueOf(type, textValue);
-	}
-
 	private Object getValue(Class<?> type, String textValue) {
-		Object result;
 		PropertyEditor editor = PropertyEditorManager.findEditor(type);
-		if (editor == null) {
-			result = UNSUPPORTED_TYPE;
-		}
 		Object value;
 		try {
 			editor.setAsText(textValue);
@@ -24,60 +17,59 @@ public class DefaultValueConverter implements ValueConverter {
 		} catch (NumberFormatException e) {
 			value = null;
 		}
-		result = value == null ? UNSUPPORTED_VALUE : value;
-		return result;
+		return value;
 	}
 
-	public Object getValue(Class<?> type, ParameterSource source, String key) {
-		Object result;
+	public Object getValue(InvokeContext ctx, Class<?> type, ParameterSourcePool sourcePool, String key) {
+		ParameterSource<?>[] sources;
+
 		if (type.isArray()) {
 			Class<?> componentType = type.getComponentType();
-			Object[] values = source.getParameters(key);
-			if (type.isInstance(values)) {
-				result = values;
-			} else if (PropertyEditorManager.findEditor(componentType) == null) {
-				result = UNSUPPORTED_TYPE;
-			} else if (componentType.isArray() || componentType.isPrimitive()) {
-				// TODO add primitive type array support
-				result = UNSUPPORTED_TYPE;
-			} else if (values == null
-					|| values.getClass().getComponentType() != String.class) {
-				result = UNSUPPORTED_VALUE;
-			} else {
-				int len = values.length;
-				String[] valuesArray = (String[]) values;
-
-				Object[] resultArray = (Object[]) Array.newInstance(
-						componentType, len);
-				result = resultArray;
-				if (Enum.class.isAssignableFrom(componentType)) {
-					for (int i = 0; i < len; i++) {
-						resultArray[i] = getEnumValue(
-								componentType.asSubclass(Enum.class),
-								valuesArray[i]);
-					}
-				} else {
-					for (int i = 0; i < len; i++) {
-						Object value = getValue(componentType, valuesArray[i]);
-						resultArray[i] = (value == UNSUPPORTED_TYPE || value == UNSUPPORTED_VALUE) ? null
-								: value;
-					}
+			if (PropertyEditorManager.findEditor(componentType) == null) {
+				return UNSUPPORTED_TYPE;
+			}
+			// String[] to <Type>[]
+			sources = sourcePool.getParameterSourcesFor(String[].class);
+			for (ParameterSource<?> source : sources) {
+				String[] sarr = (String[]) source.getParameter(ctx, key);
+				int len = sarr.length;
+				Object ret = Array.newInstance(componentType, len);
+				for (int i = 0; i < len; i++) {
+					Array.set(ret, i, getValue(componentType, sarr[i]));
+				}
+				return ret;
+			}
+			// String to <Type>[]
+			sources = sourcePool.getParameterSourcesFor(String.class);
+			for (ParameterSource<?> source : sources) {
+				String str = (String) source.getParameter(ctx, key);
+				if (str != null) {
+					Object ret = Array.newInstance(componentType, 1);
+					Array.set(ret, 0, getValue(componentType, str));
+					return ret;
 				}
 			}
 		} else {
-			Object value = source.getParameter(key);
-			if (type.isInstance(value)) {
-				result = value;
-			} else if (value == null || value.getClass() != String.class) {
-				result = UNSUPPORTED_VALUE;
-			} else if (Enum.class.isAssignableFrom(type)) {
-				String textForm = (String) value;
-				result = getEnumValue(type.asSubclass(Enum.class), textForm);
-			} else {
-				String textForm = (String) value;
-				result = getValue(type, textForm);
+			if (PropertyEditorManager.findEditor(type) == null) {
+				return UNSUPPORTED_TYPE;
+			}
+			// String to <Type>
+			sources = sourcePool.getParameterSourcesFor(String.class);
+			for (ParameterSource<?> source : sources) {
+				String str = (String) source.getParameter(ctx, key);
+				if (str != null) {
+					return getValue(type, str);
+				}
+			}
+
+			// String[] to <Type>
+			sources = sourcePool.getParameterSourcesFor(String[].class);
+			for (ParameterSource<?> source : sources) {
+				String[] sarr = (String[]) source.getParameter(ctx, key);
+				return sarr.length == 0 ? null : getValue(type, sarr[0]);
 			}
 		}
-		return result;
+		return null;
 	}
+
 }

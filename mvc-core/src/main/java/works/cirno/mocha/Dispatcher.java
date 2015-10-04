@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -24,7 +25,6 @@ import works.cirno.mocha.parameter.name.ParameterAnalyzer;
 import works.cirno.mocha.resolver.InvokeTargetCriteria;
 import works.cirno.mocha.resolver.InvokeTargetResolver;
 import works.cirno.mocha.resolver.PrefixDictInvokeTargetResolver;
-import works.cirno.mocha.result.CodeResultRenderer;
 import works.cirno.mocha.result.ResultRenderer;
 import works.cirno.mocha.result.ServletResultRenderer;
 
@@ -40,7 +40,7 @@ public abstract class Dispatcher {
 
 	protected Collection<ParameterAnalyzer> parameterAnalyzers = new ArrayList<>();
 	protected InvokeTargetResolver invokeTargetResolver = new PrefixDictInvokeTargetResolver();
-	protected MVCFactory factory;
+	protected ObjectFactory factory;
 
 	protected final static Pattern pattern = Pattern.compile("\\$\\{(.*?)\\}");
 
@@ -54,7 +54,7 @@ public abstract class Dispatcher {
 		return new PrefixDictInvokeTargetResolver();
 	}
 
-	protected MVCFactory getMVCFactory() {
+	protected ObjectFactory getMVCFactory() {
 		return new BasicMVCFactory();
 	}
 
@@ -80,28 +80,28 @@ public abstract class Dispatcher {
 					"Can't initialize Dispatcher: " + name + ", configurator " + configuratorClassName + " not found",
 					e);
 		}
-		MVCConfigurator configurator = factory.getMVCConfiguratorInstance(configuratorClass);
+		MVCConfigurator configurator = factory
+				.getInstance(new TypeOrInstance<>(configuratorClass));
 
 		configurator.setServletContext(sc);
 		configurator.configure();
 
 		for (ConfigBuilderImpl cbi : configurator.getConfigBuilders()) {
-
-			Class<?> controllerClass = cbi.getControllerClass();
-			String controllerName = cbi.getControllerName();
+			TypeOrInstance<?> controllerType = cbi.getController();
 			String methodName = cbi.getMethodName();
-			Object controller;
-			if (controllerClass != null) {
-				controller = factory.getControllerInstance(controllerClass);
-			} else if (controllerName != null) {
-				controller = factory.getControllerInstance(controllerName);
-			} else {
-				throw new IllegalStateException(
-						"You must either specify controller class or controller name in serve.with for path "
-								+ cbi.getPath());
+			Object controller = factory.getInstance(controllerType);
+
+			List<TypeOrInstance<? extends ResultRenderer>> resultRendererTypes = cbi.getResultRenderers();
+			ArrayList<ResultRenderer> resultRenderers = new ArrayList<>();
+			for (TypeOrInstance<? extends ResultRenderer> type : resultRendererTypes) {
+				resultRenderers.add(factory.getInstance(type));
 			}
-			ArrayList<ResultRenderer> resultRenderers = cbi.getResultRenderers();
-			resultRenderers.add(CodeResultRenderer.instance());
+
+			Map<Class<?>, TypeOrInstance<? extends ResultRenderer>> handlerTypes = cbi.getHandlers();
+			HashMap<Class<?>, ResultRenderer> handlers = new HashMap<>();
+			for (Entry<Class<?>, TypeOrInstance<? extends ResultRenderer>> entry : handlerTypes.entrySet()) {
+				handlers.put(entry.getKey(), factory.getInstance(entry.getValue()));
+			}
 
 			HashMap<String, ServletResultRendererConfigImpl> pendingSRRConfig = cbi
 					.getPendingServletResultRendererConfig();
@@ -115,7 +115,7 @@ public abstract class Dispatcher {
 
 			InvokeTarget target = new InvokeTarget(this, controller, methodName);
 			target.setResultRenderers(resultRenderers);
-			target.setExceptionHandlers(cbi.getHandlers());
+			target.setExceptionHandlers(handlers);
 
 			Parameter[] parameters = null;
 			for (ParameterAnalyzer pa : parameterAnalyzers) {
@@ -151,6 +151,8 @@ public abstract class Dispatcher {
 		String uri = req.getRequestURI().substring(req.getContextPath().length());
 		InvokeContext ctx = invokeTargetResolver.resolve(uri, req.getMethod());
 		if (ctx != null) {
+			ctx.setRequest(req);
+			ctx.setResponse(resp);
 			ctx.getTarget().invoke(ctx, req, resp);
 			return true;
 		} else {

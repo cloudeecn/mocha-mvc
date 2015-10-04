@@ -1,8 +1,10 @@
 package works.cirno.mocha.parameter.value;
 
-public interface ValueConverter {
-	static final Object UNSUPPORTED_TYPE = new Object();
-	static final Object UNSUPPORTED_VALUE = new Object();
+import works.cirno.mocha.InvokeContext;
 
-	Object getValue(Class<?> type, ParameterSource source, String key);
+public interface ValueConverter {
+
+	public final static Object UNSUPPORTED_TYPE = new Object();
+
+	Object getValue(InvokeContext ctx, Class<?> type, ParameterSourcePool sources, String key);
 }

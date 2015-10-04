@@ -5,7 +5,7 @@ import javax.inject.Inject;
 import com.google.inject.Injector;
 
 import works.cirno.mocha.DispatcherServlet;
-import works.cirno.mocha.MVCFactory;
+import works.cirno.mocha.ObjectFactory;
 
 public class GuicedDispatcherServlet extends DispatcherServlet {
 
@@ -13,7 +13,7 @@ public class GuicedDispatcherServlet extends DispatcherServlet {
 	private Injector injector;
 
 	@Override
-	protected MVCFactory getMVCFactory() {
+	protected ObjectFactory getMVCFactory() {
 		if (injector == null) {
 			// not configured in guice servlet, will try fetch injector from
 			// servlet context

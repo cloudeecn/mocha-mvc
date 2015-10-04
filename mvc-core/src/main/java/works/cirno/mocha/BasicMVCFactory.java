@@ -5,9 +5,22 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * BasicObjectFactory will treat all beans as singleton,
  */
-public class BasicMVCFactory implements MVCFactory {
+public class BasicMVCFactory implements ObjectFactory {
 
 	private final ConcurrentHashMap<Class<?>, Object> instances = new ConcurrentHashMap<>();
+
+	@Override
+	public <T> T getInstance(TypeOrInstance<T> param) {
+		switch (param.getInjectBy()) {
+		case TYPE:
+			return getInstance(param.getType());
+		case INSTANCE:
+			return param.getInstance();
+		default:
+			throw new UnsupportedOperationException("Can't inject by " + param.getInjectBy());
+		}
+
+	}
 
 	private <T> T getInstance(Class<T> clazz) {
 		@SuppressWarnings("unchecked")
@@ -23,22 +36,4 @@ public class BasicMVCFactory implements MVCFactory {
 		return result;
 	}
 
-	@Override
-	public <T> T getControllerInstance(Class<T> clazz) {
-		return getInstance(clazz);
-	}
-
-	@Override
-	public <T extends MVCConfigurator> T getMVCConfiguratorInstance(Class<T> clazz) {
-		return getInstance(clazz);
-	}
-
-	@Override
-	public Object getControllerInstance(String name) {
-		try {
-			return getInstance(Class.forName(name));
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
-	}
 }

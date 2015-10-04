@@ -1,9 +1,11 @@
 package works.cirno.mocha;
 
-import java.util.ArrayList;
+import java.io.File;
 import java.util.HashMap;
-import java.util.TreeMap;
+import java.util.List;
+import java.util.Map;
 
+import works.cirno.mocha.parameter.value.ParameterSource;
 import works.cirno.mocha.result.ResultRenderer;
 
 /**
@@ -16,14 +18,14 @@ class ConfigBuilderImpl implements ConfigBuilder {
 
 	private MVCConfig config;
 
-	ConfigBuilderImpl(String path, MVCConfig config) {
-		this(path, null, config);
+	ConfigBuilderImpl(String path, MVCConfig parent) {
+		this(path, null, parent);
 	}
 
-	ConfigBuilderImpl(String path, String method, MVCConfig config) {
+	ConfigBuilderImpl(String path, String method, MVCConfig parent) {
 		this.path = path;
 		this.method = method;
-		this.config = new MVCConfig(config);
+		this.config = new MVCConfig(parent);
 	}
 
 	String getPath() {
@@ -34,78 +36,109 @@ class ConfigBuilderImpl implements ConfigBuilder {
 		return method;
 	}
 
-	Class<?> getControllerClass() {
-		return config.getControllerClass();
-	}
-	
-	String getControllerName(){
-		return config.getControllerName();
+	TypeOrInstance<?> getController() {
+		return config.getController();
 	}
 
 	String getMethodName() {
 		return config.getMethodName();
 	}
 
-	TreeMap<ComparableClassWrapper, ResultRenderer> getHandlers() {
+	Map<Class<?>, TypeOrInstance<? extends ResultRenderer>> getHandlers() {
 		return config.getHandlers();
 	}
 
-	ArrayList<ResultRenderer> getResultRenderers() {
+	List<TypeOrInstance<? extends ResultRenderer>> getResultRenderers() {
 		return config.getResultRenderers();
+	}
+
+	List<TypeOrInstance<? extends ParameterSource<?>>> getParameterSources() {
+		return config.getParameterSources();
 	}
 
 	HashMap<String, ServletResultRendererConfigImpl> getPendingServletResultRendererConfig() {
 		return config.getPendingServletResultRendererConfig();
 	}
 
-	@Override
+	boolean isRaw() {
+		return config.isRaw();
+	}
+
+	File getUploadTemp() {
+		return config.getUploadTemp();
+	}
+
 	public ConfigBuilder with(Class<?> controller, String methodName) {
 		return config.with(controller, methodName);
 	}
 
-	@Override
-	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer result) {
-		return config.exception(exception, result);
-	}
-
-	@Override
-	public ServletResultRendererConfig forward(String resultName) {
-		return config.forward(resultName);
-	}
-
-	@Override
-	public ServletResultRendererConfig redirect(String resultName) {
-		return config.redirect(resultName);
-	}
-
-	@Override
-	public ConfigBuilder renderer(ResultRenderer renderer) {
-		return config.renderer(renderer);
-	}
-
-	@Override
-	public ConfigBuilder rawEntity() {
-		return config.rawEntity();
-	}
-
-	@Override
 	public ConfigBuilder with(String controllerName, String methodName) {
 		return config.with(controllerName, methodName);
 	}
 
-	@Override
 	public ConfigBuilder with(String controllerName) {
 		return config.with(controllerName);
 	}
 
-	@Override
 	public ConfigBuilder with(Class<?> controller) {
 		return config.with(controller);
 	}
 
-	@Override
 	public ConfigBuilder withMethod(String methodName) {
 		return config.withMethod(methodName);
+	}
+
+	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer result) {
+		return config.exception(exception, result);
+	}
+
+	public <T extends Throwable> ConfigBuilder exception(Class<T> exception,
+			Class<? extends ResultRenderer> resultType) {
+		return config.exception(exception, resultType);
+	}
+
+	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, String resultName) {
+		return config.exception(exception, resultName);
+	}
+
+	public ServletResultRendererConfig forward(String resultName) {
+		return config.forward(resultName);
+	}
+
+	public ServletResultRendererConfig redirect(String resultName) {
+		return config.redirect(resultName);
+	}
+
+	public ConfigBuilder prependResultRenderer(ResultRenderer renderer) {
+		return config.prependResultRenderer(renderer);
+	}
+
+	public ConfigBuilder prependResultRenderer(Class<? extends ResultRenderer> renderer) {
+		return config.prependResultRenderer(renderer);
+	}
+
+	public ConfigBuilder prependResultRenderer(String rendererName) {
+		return config.prependResultRenderer(rendererName);
+	}
+
+	public ConfigBuilder appendResultRenderer(ResultRenderer renderer) {
+		return config.appendResultRenderer(renderer);
+	}
+
+	public ConfigBuilder appendResultRenderer(Class<? extends ResultRenderer> renderer) {
+		return config.appendResultRenderer(renderer);
+	}
+
+	public ConfigBuilder appendResultRenderer(String rendererName) {
+		return config.appendResultRenderer(rendererName);
+	}
+
+	public ConfigBuilder raw() {
+		return config.raw();
+	}
+
+	public ConfigBuilder uploadTemp(File tempDirectory) {
+		return config.uploadTemp(tempDirectory);
 	}
 
 }

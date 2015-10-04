@@ -1,37 +1,25 @@
 package works.cirno.mocha.parameter.value;
 
 import java.util.Set;
-import java.util.regex.Matcher;
+
+import works.cirno.mocha.InvokeContext;
 
 /**
  *
  */
-public class NamedGroupParameterSource implements ParameterSource {
+public class NamedGroupParameterSource implements ParameterSource<String> {
 
-	private final Matcher matcher;
-	private final Set<String> groupNames;
-
-	public NamedGroupParameterSource(Matcher matcher, Set<String> groupNames) {
-		this.matcher = matcher;
-		this.groupNames = groupNames;
+	public NamedGroupParameterSource() {
 	}
 
 	@Override
-	public Object getParameter(String key) {
-		if (groupNames.contains(key)) {
-			return matcher.group(key);
-		} else {
-			return null;
-		}
+	public Class<String> supportsType() {
+		return String.class;
 	}
 
 	@Override
-	public Object[] getParameters(String key) {
-		if (groupNames.contains(key)) {
-			Object value = getParameter(key);
-			return value == null ? new Object[0] : new Object[] { value };
-		} else {
-			return null;
-		}
+	public String getParameter(InvokeContext ctx, String key) {
+		Set<String> names = ctx.getTarget().getGroupNames();
+		return (names != null && names.contains(key)) ? ctx.getUriMatcher().group(key) : null;
 	}
 }

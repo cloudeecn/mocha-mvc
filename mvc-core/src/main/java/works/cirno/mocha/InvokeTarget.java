@@ -1,18 +1,13 @@
 package works.cirno.mocha;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -20,11 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import works.cirno.mocha.parameter.name.Parameter;
-import works.cirno.mocha.parameter.value.NamedGroupParameterSource;
-import works.cirno.mocha.parameter.value.ParameterSource;
-import works.cirno.mocha.parameter.value.RequestParameterSource;
-import works.cirno.mocha.parameter.value.RequestPartSource;
-import works.cirno.mocha.parameter.value.RequestRawSource;
+import works.cirno.mocha.parameter.value.ParameterSourcePool;
 import works.cirno.mocha.parameter.value.ValueConverter;
 import works.cirno.mocha.parameter.value.ValueConverterUtil;
 import works.cirno.mocha.result.ResultRenderer;
@@ -52,14 +43,19 @@ public class InvokeTarget {
 	// private final Class<?> controllerClass;
 	// private final String methodName;
 
-	private TreeMap<ComparableClassWrapper, ResultRenderer> exceptionHandlers = new TreeMap<>();
+	private Map<Class<?>, ResultRenderer> exceptionHandlers = new HashMap<>();
 	private Set<String> groupNames;
 	private List<ResultRenderer> resultRenderers;
 
 	private Object controller;
 	private Method method;
 	private Parameter[] parameters;
-	private boolean rawEntity;
+
+	private List<ValueConverter> valueConverters;
+	private ParameterSourcePool parameterSourcePool;
+
+	private boolean raw;
+	private File uploadTemp;
 
 	public InvokeTarget(Dispatcher dispatcher, Object controller, String methodName) {
 		Class<?> controllerClass = controller.getClass();
@@ -86,7 +82,7 @@ public class InvokeTarget {
 		}
 	}
 
-	void setExceptionHandlers(TreeMap<ComparableClassWrapper, ResultRenderer> exceptionHandlers) {
+	void setExceptionHandlers(Map<Class<?>, ResultRenderer> exceptionHandlers) {
 		this.exceptionHandlers.clear();
 		this.exceptionHandlers.putAll(exceptionHandlers);
 	}
@@ -103,8 +99,20 @@ public class InvokeTarget {
 		this.groupNames = groupNames;
 	}
 
-	void setRawEntity(boolean rawEntity) {
-		this.rawEntity = rawEntity;
+	void setRaw(boolean raw) {
+		this.raw = raw;
+	}
+
+	void setUploadTemp(File uploadTemp) {
+		this.uploadTemp = uploadTemp;
+	}
+
+	void setValueConverters(List<ValueConverter> valueConverters) {
+		this.valueConverters = valueConverters;
+	}
+
+	void setParameterSourcePool(ParameterSourcePool parameterSourcePool) {
+		this.parameterSourcePool = parameterSourcePool;
 	}
 
 	public Class<?> getControllerClass() {
@@ -135,20 +143,11 @@ public class InvokeTarget {
 		return log;
 	}
 
-	public void invoke(InvokeContext context, HttpServletRequest req, HttpServletResponse resp) {
+	public Set<String> getGroupNames() {
+		return groupNames;
+	}
 
-		ArrayList<ParameterSource> parameterSources = new ArrayList<>(4);
-		if (context.getUriMatcher() != null) {
-			parameterSources.add(new NamedGroupParameterSource(context.getUriMatcher(), groupNames));
-		}
-		if (rawEntity) {
-			parameterSources.add(new RequestRawSource(req));
-		} else {
-			if (RequestPartSource.isMultipart(req)) {
-				parameterSources.add(new RequestPartSource(req));
-			}
-			parameterSources.add(new RequestParameterSource(req));
-		}
+	public void invoke(InvokeContext context, HttpServletRequest req, HttpServletResponse resp) {
 
 		int parametersCount = parameters.length;
 		Object[] invokeParams = new Object[parametersCount];
@@ -159,55 +158,17 @@ public class InvokeTarget {
 				Parameter parameter = parameters[i];
 				String name = parameter.getName();
 				Class<?> type = parameter.getType();
-				Object value = ValueConverter.UNSUPPORTED_TYPE;
-				if ((type.isPrimitive() || type.isArray()) && name != null) {
-					if (log.isDebugEnabled()) {
-						log.debug("CONV {}({})", name, type.isPrimitive() ? "PRI" : "ARR");
-					}
-					value = ValueConverterUtil.convert(ValueConverterUtil.DEFAULT_VALUE_CONVERTERS, parameterSources,
-							type, name);
-					if (value == ValueConverter.UNSUPPORTED_TYPE || value == ValueConverter.UNSUPPORTED_VALUE) {
-						if (type.isPrimitive()) {
-							value = defaultPrimitives.get(type);
-						} else {
-							value = null;
-						}
-					}
-				} else if (type.isAssignableFrom(HttpServletRequest.class)
-						&& ServletRequest.class.isAssignableFrom(type)) {
-					value = req;
-				} else if (type.isAssignableFrom(HttpServletResponse.class)
-						&& ServletResponse.class.isAssignableFrom(type)) {
-					value = resp;
-				} else if (type.isAssignableFrom(ServletOutputStream.class)
-						&& OutputStream.class.isAssignableFrom(type)) {
-					value = resp.getOutputStream();
-				} else if (name != null) {
-					if (log.isDebugEnabled()) {
-						log.debug("CONV {}({})", name, "OBJ");
-					}
-					value = ValueConverterUtil.convert(ValueConverterUtil.DEFAULT_VALUE_CONVERTERS, parameterSources,
-							type, name);
-					if ((value == ValueConverter.UNSUPPORTED_VALUE || value == ValueConverter.UNSUPPORTED_TYPE)
-							&& !type.isArray() && !type.isPrimitive() && !type.isInterface()) {
-						if (log.isDebugEnabled()) {
-							log.debug("CONV {}({})", name, "BEN");
-						}
-						value = ValueConverterUtil.convertBean(ValueConverterUtil.DEFAULT_VALUE_CONVERTERS,
-								parameterSources, type, name);
-					}
-					if (value == ValueConverter.UNSUPPORTED_TYPE || value == ValueConverter.UNSUPPORTED_VALUE) {
-						value = null;
-					}
-				} else {
-					value = null;
+
+				Object value = ValueConverterUtil.convert(context, valueConverters, parameterSourcePool, type, name);
+				if (value == null && type.isPrimitive()) {
+					value = defaultPrimitives.get(type);
 				}
 				invokeParams[i] = value;
 			}
-		} catch (IOException e) {
+		} catch (Throwable t) {
 			log.error("Exception occurred binding parameters {}{}", req.getRequestURI(),
-					req.getQueryString() != null ? req.getQueryString() : "", e);
-			handleException(context, req, resp, e);
+					req.getQueryString() != null ? req.getQueryString() : "", t);
+			handleException(context, req, resp, t);
 		}
 		try {
 			Object result = method.invoke(controller, invokeParams);
@@ -250,13 +211,18 @@ public class InvokeTarget {
 	}
 
 	public void handleException(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Throwable e) {
-		Class<? extends Throwable> exceptionType = e.getClass();
-		Entry<ComparableClassWrapper, ResultRenderer> entry = exceptionHandlers
-				.ceilingEntry(new ComparableClassWrapper(exceptionType));
+		Class<?> exceptionType = e.getClass();
+		ResultRenderer renderer;
+		do {
+			renderer = exceptionHandlers.get(exceptionType);
+			if (renderer != null) {
+				break;
+			}
+		} while (Throwable.class.isAssignableFrom(exceptionType = exceptionType.getSuperclass()));
 
-		if (entry != null && entry.getKey().getContent().isAssignableFrom(exceptionType)) {
+		if (renderer != null) {
 			try {
-				entry.getValue().renderResult(ctx, req, resp, e);
+				renderer.renderResult(ctx, req, resp, e);
 			} catch (Throwable ex) {
 				log.error("Exception occored handling exception: {}", e, ex);
 			}

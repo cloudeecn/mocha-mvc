@@ -1,22 +1,50 @@
 package works.cirno.mocha;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.TreeMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
+import works.cirno.mocha.parameter.value.NamedGroupParameterSource;
+import works.cirno.mocha.parameter.value.ParameterSource;
+import works.cirno.mocha.parameter.value.RequestArrayParameterSource;
+import works.cirno.mocha.parameter.value.RequestRawSource;
+import works.cirno.mocha.parameter.value.RequestSingleParameterSource;
+import works.cirno.mocha.parameter.value.ResponseRawSource;
+import works.cirno.mocha.parameter.value.SessionParameterSource;
 import works.cirno.mocha.result.ResultRenderer;
 import works.cirno.mocha.result.ResultType;
 
 class MVCConfig implements ConfigBuilder {
+	private static final List<TypeOrInstance<ParameterSource<?>>> DEFAULT_PARAMETER_SOURCES = Arrays.asList(//
+			new TypeOrInstance<ParameterSource<?>>(RequestRawSource.class), //
+			new TypeOrInstance<ParameterSource<?>>(ResponseRawSource.class), //
+			new TypeOrInstance<ParameterSource<?>>(SessionParameterSource.class), //
+			new TypeOrInstance<ParameterSource<?>>(NamedGroupParameterSource.class), //
+			new TypeOrInstance<ParameterSource<?>>(RequestArrayParameterSource.class), //
+			new TypeOrInstance<ParameterSource<?>>(RequestSingleParameterSource.class) //
+	);
+
 	private MVCConfig parent;
 
-	private Class<?> controller;
-	private String controllerName;
+	private TypeOrInstance<?> controller;
 	private String methodName;
 
-	private boolean rawEntity;
-	private TreeMap<ComparableClassWrapper, ResultRenderer> handlers = new TreeMap<>();
-	private ArrayList<ResultRenderer> resultRenderers = new ArrayList<>();
+	private File uploadTemp;
+	private boolean raw;
+	private Map<Class<?>, TypeOrInstance<? extends ResultRenderer>> handlers;
+	private HashMap<Class<?>, TypeOrInstance<? extends ResultRenderer>> handlersCustom = new HashMap<>();
+	private List<TypeOrInstance<? extends ResultRenderer>> resultRenderers;
+	private List<TypeOrInstance<? extends ResultRenderer>> resultRenderersAppend = new ArrayList<>();
+	private List<TypeOrInstance<? extends ResultRenderer>> resultRenderersPrepend = new LinkedList<>();
+
+	private List<TypeOrInstance<? extends ParameterSource<?>>> parameterSources;
+	private List<TypeOrInstance<? extends ParameterSource<?>>> parameterSourcesAppend = new ArrayList<>();
+	private List<TypeOrInstance<? extends ParameterSource<?>>> parameterSourcesPrepend = new LinkedList<>();
 	private HashMap<String, ServletResultRendererConfigImpl> pendingServletResultRendererConfig = new HashMap<>();
 
 	public MVCConfig() {
@@ -30,36 +58,64 @@ class MVCConfig implements ConfigBuilder {
 		return parent;
 	}
 
-	Class<?> getControllerClass() {
-		return controller == null ? (parent == null || controllerName != null) ? null : parent.getControllerClass()
-				: controller;
-	}
-
-	String getControllerName() {
-		return controllerName == null ? (parent == null || controller != null) ? null : parent.getControllerName()
-				: controllerName;
+	TypeOrInstance<?> getController() {
+		return controller == null ? parent == null ? null : parent.getController() : controller;
 	}
 
 	String getMethodName() {
 		return methodName == null ? parent == null ? null : parent.getMethodName() : methodName;
 	}
 
-	TreeMap<ComparableClassWrapper, ResultRenderer> getHandlers() {
-		TreeMap<ComparableClassWrapper, ResultRenderer> handlers = new TreeMap<>();
-		if (parent != null) {
-			handlers.putAll(parent.getHandlers());
+	Map<Class<?>, TypeOrInstance<? extends ResultRenderer>> getHandlers() {
+		if (handlers == null) {
+			if (handlersCustom.size() == 0) {
+				handlers = parent == null ? Collections.<Class<?>, TypeOrInstance<? extends ResultRenderer>> emptyMap()
+						: parent.getHandlers();
+			} else {
+				handlers = new HashMap<>();
+				if (parent != null) {
+					handlers.putAll(parent.getHandlers());
+				} else {
+					handlers.putAll(handlersCustom);
+				}
+			}
 		}
-		handlers.putAll(this.handlers);
 		return handlers;
 	}
 
-	ArrayList<ResultRenderer> getResultRenderers() {
-		ArrayList<ResultRenderer> renderers = new ArrayList<>();
-		renderers.addAll(this.resultRenderers);
-		if (parent != null) {
-			renderers.addAll(parent.getResultRenderers());
+	List<TypeOrInstance<? extends ResultRenderer>> getResultRenderers() {
+		if (resultRenderers == null) {
+			if (resultRenderersAppend.size() + resultRenderersPrepend.size() == 0) {
+				resultRenderers = parent == null ? Collections.<TypeOrInstance<? extends ResultRenderer>> emptyList()
+						: parent.getResultRenderers();
+			} else {
+				resultRenderers = new ArrayList<>();
+				resultRenderers.addAll(resultRenderersPrepend);
+				if (parent != null) {
+					resultRenderers.addAll(parent.getResultRenderers());
+				}
+				resultRenderers.addAll(resultRenderersAppend);
+			}
 		}
-		return renderers;
+		return resultRenderers;
+	}
+
+	List<TypeOrInstance<? extends ParameterSource<?>>> getParameterSources() {
+		if (parameterSources == null) {
+			if (parameterSourcesAppend.size() + parameterSourcesPrepend.size() == 0) {
+				parameterSources = parent == null
+						? Collections.<TypeOrInstance<? extends ParameterSource<?>>> emptyList()
+						: parent.getParameterSources();
+			} else {
+				parameterSources = new ArrayList<>();
+				parameterSources.addAll(parameterSourcesPrepend);
+				if (parent != null) {
+					parameterSources.addAll(parent.getParameterSources());
+				}
+				parameterSources.addAll(parameterSourcesAppend);
+			}
+		}
+		return parameterSources;
 	}
 
 	HashMap<String, ServletResultRendererConfigImpl> getPendingServletResultRendererConfig() {
@@ -71,8 +127,13 @@ class MVCConfig implements ConfigBuilder {
 		return psrrConfig;
 	}
 
-	boolean getRawEntity() {
-		return rawEntity ? true : (parent == null ? false : parent.getRawEntity());
+	boolean isRaw() {
+		return raw ? true : (parent == null ? false : parent.isRaw());
+	}
+
+	File getUploadTemp() {
+		return uploadTemp == null
+				? parent == null ? new File(System.getProperty("java.io.tmpdir")) : parent.getUploadTemp() : uploadTemp;
 	}
 
 	@Override
@@ -91,15 +152,13 @@ class MVCConfig implements ConfigBuilder {
 
 	@Override
 	public ConfigBuilder with(String controllerName) {
-		this.controllerName = controllerName;
-		this.controller = null;
+		this.controller = new TypeOrInstance<>(controllerName, Object.class);
 		return this;
 	}
 
 	@Override
 	public ConfigBuilder with(Class<?> controller) {
-		this.controller = controller;
-		this.controllerName = null;
+		this.controller = new TypeOrInstance<>(controller);
 		return this;
 	}
 
@@ -111,7 +170,20 @@ class MVCConfig implements ConfigBuilder {
 
 	@Override
 	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer result) {
-		this.handlers.put(new ComparableClassWrapper(exception), result);
+		this.handlers.put(exception, new TypeOrInstance<>(result));
+		return this;
+	}
+
+	@Override
+	public <T extends Throwable> ConfigBuilder exception(Class<T> exception,
+			Class<? extends ResultRenderer> resultType) {
+		this.handlers.put(exception, new TypeOrInstance<>(resultType));
+		return this;
+	}
+
+	@Override
+	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, String resultName) {
+		this.handlers.put(exception, new TypeOrInstance<>(resultName, ResultRenderer.class));
 		return this;
 	}
 
@@ -130,14 +202,50 @@ class MVCConfig implements ConfigBuilder {
 	}
 
 	@Override
-	public ConfigBuilder renderer(ResultRenderer renderer) {
-		resultRenderers.add(renderer);
+	public ConfigBuilder prependResultRenderer(ResultRenderer renderer) {
+		resultRenderersPrepend.add(0, new TypeOrInstance<>(renderer));
 		return this;
 	}
 
 	@Override
-	public ConfigBuilder rawEntity() {
-		this.rawEntity = true;
+	public ConfigBuilder prependResultRenderer(Class<? extends ResultRenderer> renderer) {
+		resultRenderersPrepend.add(0, new TypeOrInstance<>(renderer));
+		return this;
+	}
+
+	@Override
+	public ConfigBuilder prependResultRenderer(String rendererName) {
+		resultRenderersPrepend.add(0, new TypeOrInstance<>(rendererName, ResultRenderer.class));
+		return this;
+	}
+
+	@Override
+	public ConfigBuilder appendResultRenderer(ResultRenderer renderer) {
+		resultRenderersAppend.add(new TypeOrInstance<>(renderer));
+		return this;
+	}
+
+	@Override
+	public ConfigBuilder appendResultRenderer(Class<? extends ResultRenderer> renderer) {
+		resultRenderersAppend.add(new TypeOrInstance<>(renderer));
+		return this;
+	}
+
+	@Override
+	public ConfigBuilder appendResultRenderer(String rendererName) {
+		resultRenderersAppend.add(new TypeOrInstance<>(rendererName, ResultRenderer.class));
+		return this;
+	}
+
+	@Override
+	public ConfigBuilder raw() {
+		this.raw = true;
+		return this;
+	}
+
+	@Override
+	public ConfigBuilder uploadTemp(File tempDirectory) {
+		this.uploadTemp = tempDirectory;
 		return this;
 	}
 }

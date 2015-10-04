@@ -1,7 +1,10 @@
 package works.cirno.mocha.parameter.value;
 
-public interface ParameterSource {
-	Object getParameter(String key);
+import works.cirno.mocha.InvokeContext;
 
-	Object[] getParameters(String key);
+public interface ParameterSource<T> {
+
+	Class<T> supportsType();
+
+	T getParameter(InvokeContext ctx, String key);
 }

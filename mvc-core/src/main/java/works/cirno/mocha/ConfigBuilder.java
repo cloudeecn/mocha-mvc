@@ -1,5 +1,7 @@
 package works.cirno.mocha;
 
+import java.io.File;
+
 import works.cirno.mocha.result.ResultRenderer;
 
 /**
@@ -40,6 +42,10 @@ public interface ConfigBuilder {
 	 */
 	<T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer result);
 
+	<T extends Throwable> ConfigBuilder exception(Class<T> exception, Class<? extends ResultRenderer> result);
+
+	<T extends Throwable> ConfigBuilder exception(Class<T> exception, String resultName);
+
 	/**
 	 * Forward a view result to a specific path (likely forward to JSP) <br/>
 	 * Following by a to(path) method, you will specify path to forward to there
@@ -67,13 +73,38 @@ public interface ConfigBuilder {
 	 * @param renderer
 	 * @return
 	 */
-	ConfigBuilder renderer(ResultRenderer renderer);
+	ConfigBuilder prependResultRenderer(ResultRenderer renderer);
+
+	ConfigBuilder prependResultRenderer(Class<? extends ResultRenderer> renderer);
+
+	ConfigBuilder prependResultRenderer(String rendererName);
 
 	/**
-	 * Bind full http entity from request (aka. request.getInputStream) to an
-	 * InputStream
+	 * Add a custom works.cirno.mocha.result.ResultRenderer to handle result
+	 * 
+	 * @param renderer
+	 * @return
+	 */
+	ConfigBuilder appendResultRenderer(ResultRenderer renderer);
+
+	ConfigBuilder appendResultRenderer(Class<? extends ResultRenderer> renderer);
+
+	ConfigBuilder appendResultRenderer(String rendererName);
+
+	/**
+	 * Don't parse http body posted, you can fetch the body from a InputStream
+	 * parameter in controller method
 	 * 
 	 * @return
 	 */
-	ConfigBuilder rawEntity();
+	ConfigBuilder raw();
+
+	/**
+	 * Set directory which will store temporary uploaded data
+	 * 
+	 * @param tempDirectory
+	 * @return
+	 */
+	ConfigBuilder uploadTemp(File tempDirectory);
+
 }

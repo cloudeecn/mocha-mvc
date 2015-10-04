@@ -1,33 +1,22 @@
 package works.cirno.mocha.parameter.value;
 
-import java.io.IOException;
-
 import javax.servlet.http.HttpServletRequest;
 
-public class RequestRawSource implements ParameterSource {
+import works.cirno.mocha.InvokeContext;
 
-	private HttpServletRequest req;
+public class RequestRawSource implements ParameterSource<HttpServletRequest> {
 
 	public RequestRawSource(HttpServletRequest req) {
-		this.req = req;
 	}
 
 	@Override
-	public Object getParameter(String key) {
-		try {
-			return req.getInputStream();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+	public Class<HttpServletRequest> supportsType() {
+		return HttpServletRequest.class;
 	}
 
 	@Override
-	public Object[] getParameters(String key) {
-		try {
-			return new Object[] { req.getInputStream() };
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+	public HttpServletRequest getParameter(InvokeContext ctx, String key) {
+		return ctx.getRequest();
 	}
 
 }
