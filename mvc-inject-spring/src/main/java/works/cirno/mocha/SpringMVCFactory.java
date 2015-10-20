@@ -1,5 +1,7 @@
 package works.cirno.mocha;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -7,10 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.web.context.support.SpringBeanAutowiringSupport;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
 @Named
 @Singleton
@@ -18,29 +20,15 @@ public class SpringMVCFactory implements ObjectFactory, ApplicationContextAware 
 	private static final Logger log = LoggerFactory.getLogger(SpringMVCFactory.class);
 	private ApplicationContext applicationContext;
 
+	private ConcurrentHashMap<Class<?>, Object> unmanagedBeans = new ConcurrentHashMap<>(4);
+
+	AutowiredAnnotationBeanPostProcessor processer;
+
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		this.applicationContext = applicationContext;
-	}
-
-	@Override
-	public <T> T getInstance(Class<T> clazz) {
-		return applicationContext.getBean(clazz);
-	}
-
-	@Override
-	public <T extends MVCConfigurator> T getMVCConfiguratorInstance(Class<T> clazz) {
-		try {
-			return applicationContext.getBean(clazz);
-		} catch (NoSuchBeanDefinitionException e) {
-			log.info("MVCConfigurator bean created");
-			return applicationContext.getAutowireCapableBeanFactory().createBean(clazz);
-		}
-	}
-
-	@Override
-	public Object getInstance(String name) {
-		return applicationContext.getBean(name);
+		processer = new AutowiredAnnotationBeanPostProcessor();
+		processer.setBeanFactory(applicationContext.getAutowireCapableBeanFactory());
 	}
 
 	public static ObjectFactory fromCustomApplicationContext(ApplicationContext ac) {
@@ -59,11 +47,32 @@ public class SpringMVCFactory implements ObjectFactory, ApplicationContextAware 
 	public <T> T getInstance(TypeOrInstance<T> param) {
 		switch (param.getInjectBy()) {
 		case INSTANCE:
-			break;
+			return param.getInstance();
 		case NAME_TYPE:
+			return applicationContext.getBean(param.getName(), param.getType());
 		case TYPE:
+			try {
+				return applicationContext.getBean(param.getType());
+			} catch (NoSuchBeanDefinitionException e) {
+				Class<? extends T> type = param.getType();
+				
+				@SuppressWarnings("unchecked")
+				T result = (T) unmanagedBeans.get(type);
+				if (result == null) {
+					log.warn("Can't find bean for type {} will manage bean as singleton", type);
+					try {
+						result = type.newInstance();
+					} catch (InstantiationException | IllegalAccessException e1) {
+						log.error("Can't instantiate {}.", type.getName(), e1);
+						throw new NoSuchBeanDefinitionException(type);
+					}
+					processer.processInjection(result);
+					unmanagedBeans.put(type, result);
+				}
+				return result;
+			}
 		}
-		return null;
+		throw new UnsupportedOperationException("Unknown injection type " + param.getInjectBy());
 	}
 
 }

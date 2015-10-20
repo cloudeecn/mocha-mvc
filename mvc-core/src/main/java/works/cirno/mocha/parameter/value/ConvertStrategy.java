@@ -1,0 +1,5 @@
+package works.cirno.mocha.parameter.value;
+
+public enum ConvertStrategy {
+	EXCEPTION_WHEN_UNCONVERTABLE, SKIP_WHEN_UNCONVERTABLE, NOT_FOUND_WHEN_UNCONVERTABLE, NULL_WHEN_UNCONVERTABLE
+}

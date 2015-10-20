@@ -2,7 +2,6 @@ package works.cirno.mocha.result;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
@@ -13,7 +12,7 @@ import works.cirno.mocha.InvokeContext;
 /**
  *
  */
-public class CodeResultRenderer implements ResultRenderer {
+public class CodeResultRenderer implements Renderer {
 	private static Logger log = LoggerFactory.getLogger(CodeResultRenderer.class);
 
 	private static final CodeResultRenderer instance = new CodeResultRenderer();
@@ -23,7 +22,8 @@ public class CodeResultRenderer implements ResultRenderer {
 	}
 
 	@Override
-	public boolean renderResult(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Object resultObj) {
+	public boolean renderResult(InvokeContext ctx, Object resultObj) {
+		HttpServletResponse resp = ctx.getResponse();
 		if (resultObj instanceof Number) {
 			try {
 				resp.sendError(((Number) resultObj).intValue());

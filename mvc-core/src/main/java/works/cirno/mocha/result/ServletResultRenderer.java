@@ -13,7 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import works.cirno.mocha.InvokeContext;
 
-public class ServletResultRenderer implements ResultRenderer {
+public class ServletResultRenderer implements Renderer {
 
 	private HashMap<String, Entry<ResultType, String>> results = new HashMap<>();
 
@@ -24,7 +24,9 @@ public class ServletResultRenderer implements ResultRenderer {
 		results.put(name, new SimpleEntry<ResultType, String>(type, path));
 	}
 
-	public boolean renderResult(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Object resultObj) {
+	public boolean renderResult(InvokeContext ctx, Object resultObj) {
+		HttpServletRequest req = ctx.getRequest();
+		HttpServletResponse resp = ctx.getResponse();
 		try {
 			String name;
 			Iterable<Entry<String, Object>> attributes;
@@ -56,7 +58,7 @@ public class ServletResultRenderer implements ResultRenderer {
 			}
 			return false;
 		} catch (ServletException | IOException e) {
-			ctx.getTarget().handleException(ctx, req, resp, e);
+			ctx.getTarget().handleException(ctx, e);
 			return true;
 		}
 	}

@@ -2,7 +2,7 @@ package works.cirno.mocha;
 
 import java.io.File;
 
-import works.cirno.mocha.result.ResultRenderer;
+import works.cirno.mocha.result.Renderer;
 
 /**
  *
@@ -40,9 +40,9 @@ public interface ConfigBuilder {
 	 * @param result
 	 * @return
 	 */
-	<T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer result);
+	<T extends Throwable> ConfigBuilder exception(Class<T> exception, Renderer result);
 
-	<T extends Throwable> ConfigBuilder exception(Class<T> exception, Class<? extends ResultRenderer> result);
+	<T extends Throwable> ConfigBuilder exception(Class<T> exception, Class<? extends Renderer> result);
 
 	<T extends Throwable> ConfigBuilder exception(Class<T> exception, String resultName);
 
@@ -73,9 +73,9 @@ public interface ConfigBuilder {
 	 * @param renderer
 	 * @return
 	 */
-	ConfigBuilder prependResultRenderer(ResultRenderer renderer);
+	ConfigBuilder prependResultRenderer(Renderer renderer);
 
-	ConfigBuilder prependResultRenderer(Class<? extends ResultRenderer> renderer);
+	ConfigBuilder prependResultRenderer(Class<? extends Renderer> renderer);
 
 	ConfigBuilder prependResultRenderer(String rendererName);
 
@@ -85,9 +85,9 @@ public interface ConfigBuilder {
 	 * @param renderer
 	 * @return
 	 */
-	ConfigBuilder appendResultRenderer(ResultRenderer renderer);
+	ConfigBuilder appendResultRenderer(Renderer renderer);
 
-	ConfigBuilder appendResultRenderer(Class<? extends ResultRenderer> renderer);
+	ConfigBuilder appendResultRenderer(Class<? extends Renderer> renderer);
 
 	ConfigBuilder appendResultRenderer(String rendererName);
 

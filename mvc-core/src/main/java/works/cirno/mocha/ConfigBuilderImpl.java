@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import works.cirno.mocha.parameter.value.ParameterSource;
-import works.cirno.mocha.result.ResultRenderer;
+import works.cirno.mocha.result.Renderer;
 
 /**
  *
@@ -44,16 +44,12 @@ class ConfigBuilderImpl implements ConfigBuilder {
 		return config.getMethodName();
 	}
 
-	Map<Class<?>, TypeOrInstance<? extends ResultRenderer>> getHandlers() {
+	Map<Class<?>, TypeOrInstance<? extends Renderer>> getHandlers() {
 		return config.getHandlers();
 	}
 
-	List<TypeOrInstance<? extends ResultRenderer>> getResultRenderers() {
+	List<TypeOrInstance<? extends Renderer>> getResultRenderers() {
 		return config.getResultRenderers();
-	}
-
-	List<TypeOrInstance<? extends ParameterSource<?>>> getParameterSources() {
-		return config.getParameterSources();
 	}
 
 	HashMap<String, ServletResultRendererConfigImpl> getPendingServletResultRendererConfig() {
@@ -88,12 +84,12 @@ class ConfigBuilderImpl implements ConfigBuilder {
 		return config.withMethod(methodName);
 	}
 
-	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer result) {
+	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, Renderer result) {
 		return config.exception(exception, result);
 	}
 
 	public <T extends Throwable> ConfigBuilder exception(Class<T> exception,
-			Class<? extends ResultRenderer> resultType) {
+			Class<? extends Renderer> resultType) {
 		return config.exception(exception, resultType);
 	}
 
@@ -109,11 +105,11 @@ class ConfigBuilderImpl implements ConfigBuilder {
 		return config.redirect(resultName);
 	}
 
-	public ConfigBuilder prependResultRenderer(ResultRenderer renderer) {
+	public ConfigBuilder prependResultRenderer(Renderer renderer) {
 		return config.prependResultRenderer(renderer);
 	}
 
-	public ConfigBuilder prependResultRenderer(Class<? extends ResultRenderer> renderer) {
+	public ConfigBuilder prependResultRenderer(Class<? extends Renderer> renderer) {
 		return config.prependResultRenderer(renderer);
 	}
 
@@ -121,11 +117,11 @@ class ConfigBuilderImpl implements ConfigBuilder {
 		return config.prependResultRenderer(rendererName);
 	}
 
-	public ConfigBuilder appendResultRenderer(ResultRenderer renderer) {
+	public ConfigBuilder appendResultRenderer(Renderer renderer) {
 		return config.appendResultRenderer(renderer);
 	}
 
-	public ConfigBuilder appendResultRenderer(Class<? extends ResultRenderer> renderer) {
+	public ConfigBuilder appendResultRenderer(Class<? extends Renderer> renderer) {
 		return config.appendResultRenderer(renderer);
 	}
 

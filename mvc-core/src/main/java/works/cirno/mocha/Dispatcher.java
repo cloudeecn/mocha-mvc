@@ -25,7 +25,7 @@ import works.cirno.mocha.parameter.name.ParameterAnalyzer;
 import works.cirno.mocha.resolver.InvokeTargetCriteria;
 import works.cirno.mocha.resolver.InvokeTargetResolver;
 import works.cirno.mocha.resolver.PrefixDictInvokeTargetResolver;
-import works.cirno.mocha.result.ResultRenderer;
+import works.cirno.mocha.result.Renderer;
 import works.cirno.mocha.result.ServletResultRenderer;
 
 /**
@@ -91,15 +91,15 @@ public abstract class Dispatcher {
 			String methodName = cbi.getMethodName();
 			Object controller = factory.getInstance(controllerType);
 
-			List<TypeOrInstance<? extends ResultRenderer>> resultRendererTypes = cbi.getResultRenderers();
-			ArrayList<ResultRenderer> resultRenderers = new ArrayList<>();
-			for (TypeOrInstance<? extends ResultRenderer> type : resultRendererTypes) {
+			List<TypeOrInstance<? extends Renderer>> resultRendererTypes = cbi.getResultRenderers();
+			ArrayList<Renderer> resultRenderers = new ArrayList<>();
+			for (TypeOrInstance<? extends Renderer> type : resultRendererTypes) {
 				resultRenderers.add(factory.getInstance(type));
 			}
 
-			Map<Class<?>, TypeOrInstance<? extends ResultRenderer>> handlerTypes = cbi.getHandlers();
-			HashMap<Class<?>, ResultRenderer> handlers = new HashMap<>();
-			for (Entry<Class<?>, TypeOrInstance<? extends ResultRenderer>> entry : handlerTypes.entrySet()) {
+			Map<Class<?>, TypeOrInstance<? extends Renderer>> handlerTypes = cbi.getHandlers();
+			HashMap<Class<?>, Renderer> handlers = new HashMap<>();
+			for (Entry<Class<?>, TypeOrInstance<? extends Renderer>> entry : handlerTypes.entrySet()) {
 				handlers.put(entry.getKey(), factory.getInstance(entry.getValue()));
 			}
 
@@ -149,11 +149,19 @@ public abstract class Dispatcher {
 
 	protected boolean invoke(HttpServletRequest req, HttpServletResponse resp) {
 		String uri = req.getRequestURI().substring(req.getContextPath().length());
+		long beginTime = 0;
+		if (log.isDebugEnabled()) {
+			log.debug("Dispatching {}", uri);
+			beginTime = System.nanoTime();
+		}
 		InvokeContext ctx = invokeTargetResolver.resolve(uri, req.getMethod());
+		if (log.isDebugEnabled()) {
+			log.debug("Target resolved in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+		}
 		if (ctx != null) {
 			ctx.setRequest(req);
 			ctx.setResponse(resp);
-			ctx.getTarget().invoke(ctx, req, resp);
+			ctx.getTarget().invoke(uri, ctx);
 			return true;
 		} else {
 			return false;

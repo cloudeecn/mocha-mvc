@@ -11,14 +11,17 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemFactory;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import works.cirno.mocha.parameter.name.Parameter;
-import works.cirno.mocha.parameter.value.ParameterSourcePool;
-import works.cirno.mocha.parameter.value.ValueConverter;
-import works.cirno.mocha.parameter.value.ValueConverterUtil;
-import works.cirno.mocha.result.ResultRenderer;
+import works.cirno.mocha.parameter.value.ParameterSource;
+import works.cirno.mocha.result.Renderer;
 
 /**
  *
@@ -43,16 +46,13 @@ public class InvokeTarget {
 	// private final Class<?> controllerClass;
 	// private final String methodName;
 
-	private Map<Class<?>, ResultRenderer> exceptionHandlers = new HashMap<>();
+	private Map<Class<?>, Renderer> exceptionHandlers = new HashMap<>();
 	private Set<String> groupNames;
-	private List<ResultRenderer> resultRenderers;
+	private List<Renderer> resultRenderers;
 
 	private Object controller;
 	private Method method;
 	private Parameter[] parameters;
-
-	private List<ValueConverter> valueConverters;
-	private ParameterSourcePool parameterSourcePool;
 
 	private boolean raw;
 	private File uploadTemp;
@@ -82,7 +82,7 @@ public class InvokeTarget {
 		}
 	}
 
-	void setExceptionHandlers(Map<Class<?>, ResultRenderer> exceptionHandlers) {
+	void setExceptionHandlers(Map<Class<?>, Renderer> exceptionHandlers) {
 		this.exceptionHandlers.clear();
 		this.exceptionHandlers.putAll(exceptionHandlers);
 	}
@@ -91,7 +91,7 @@ public class InvokeTarget {
 		this.parameters = parameters.clone();
 	}
 
-	void setResultRenderers(List<ResultRenderer> resultRenderers) {
+	void setResultRenderers(List<Renderer> resultRenderers) {
 		this.resultRenderers = new ArrayList<>(resultRenderers);
 	}
 
@@ -105,14 +105,6 @@ public class InvokeTarget {
 
 	void setUploadTemp(File uploadTemp) {
 		this.uploadTemp = uploadTemp;
-	}
-
-	void setValueConverters(List<ValueConverter> valueConverters) {
-		this.valueConverters = valueConverters;
-	}
-
-	void setParameterSourcePool(ParameterSourcePool parameterSourcePool) {
-		this.parameterSourcePool = parameterSourcePool;
 	}
 
 	public Class<?> getControllerClass() {
@@ -135,7 +127,7 @@ public class InvokeTarget {
 		return parameters.length;
 	}
 
-	public List<ResultRenderer> getResultRenderers() {
+	public List<Renderer> getResultRenderers() {
 		return resultRenderers;
 	}
 
@@ -147,56 +139,117 @@ public class InvokeTarget {
 		return groupNames;
 	}
 
-	public void invoke(InvokeContext context, HttpServletRequest req, HttpServletResponse resp) {
+	public boolean isRaw() {
+		return raw;
+	}
 
-		int parametersCount = parameters.length;
-		Object[] invokeParams = new Object[parametersCount];
-
-		try {
-			// bind parameter
-			for (int i = 0; i < parametersCount; i++) {
-				Parameter parameter = parameters[i];
-				String name = parameter.getName();
-				Class<?> type = parameter.getType();
-
-				Object value = ValueConverterUtil.convert(context, valueConverters, parameterSourcePool, type, name);
-				if (value == null && type.isPrimitive()) {
-					value = defaultPrimitives.get(type);
-				}
-				invokeParams[i] = value;
-			}
-		} catch (Throwable t) {
-			log.error("Exception occurred binding parameters {}{}", req.getRequestURI(),
-					req.getQueryString() != null ? req.getQueryString() : "", t);
-			handleException(context, req, resp, t);
+	public void invoke(String uri, InvokeContext context) {
+		long beginTime = 0;
+		if (log.isDebugEnabled()) {
+			log.debug("Invoking {}", uri);
+			beginTime = System.nanoTime();
 		}
 		try {
-			Object result = method.invoke(controller, invokeParams);
-			handleResult(context, req, resp, result);
-		} catch (Throwable t) {
-			log.error("Exception occurred processing request {}{}", req.getRequestURI(),
-					req.getQueryString() != null ? req.getQueryString() : "", t);
-			handleException(context, req, resp, t);
+			HttpServletRequest req = context.getRequest();
+			HttpServletResponse resp = context.getResponse();
+
+			if (ServletFileUpload.isMultipartContent(req)) {
+				try {
+					// TODO Rework this to make it configurable and reuseable
+					FileItemFactory fileItemFactory = new DiskFileItemFactory(
+							DiskFileItemFactory.DEFAULT_SIZE_THRESHOLD,
+							uploadTemp);
+					context.setMultipart(true);
+					ServletFileUpload servletFileUpload = new ServletFileUpload(fileItemFactory);
+					List<FileItem> items = servletFileUpload.parseRequest(req);
+					for (FileItem item : items) {
+						MultiPartItem part = new MultiPartItemCommon(item);
+						if (!item.isInMemory()) {
+							context.registerCloseable(part,
+									"UploadFile: " + item.getFieldName() + " name: " + item.getName());
+						}
+						context.addPart(part);
+					}
+				} catch (FileUploadException e) {
+					throw new RuntimeException(e);
+				}
+				if (log.isDebugEnabled()) {
+					log.debug("Parse multipart in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+					beginTime = System.nanoTime();
+				}
+			}
+
+			int parametersCount = parameters.length;
+			Object[] invokeParams = new Object[parametersCount];
+
+			try {
+				// bind parameter
+				for (int i = 0; i < parametersCount; i++) {
+					Parameter parameter = parameters[i];
+					Class<?> type = parameter.getType();
+					Object value = ParameterSource.NOT_HERE;
+					for (ParameterSource source : parameter.getParameterSources()) {
+						value = source.getParameterValue(context, parameter);
+					}
+					if (value == ParameterSource.NOT_HERE) {
+						value = null;
+					}
+					if (value == null && type.isPrimitive()) {
+						value = defaultPrimitives.get(type);
+					}
+					invokeParams[i] = value;
+				}
+			} catch (Throwable t) {
+				log.error("Exception occurred binding parameters {}{}", req.getRequestURI(),
+						req.getQueryString() != null ? req.getQueryString() : "", t);
+				handleException(context, t);
+			}
+			if (log.isDebugEnabled()) {
+				log.debug("Parameter resolve in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+				beginTime = System.nanoTime();
+			}
+			try {
+				Object result = method.invoke(controller, invokeParams);
+				if (log.isDebugEnabled()) {
+					log.debug("Controller execution in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+					beginTime = System.nanoTime();
+				}
+				handleResult(context, req, resp, result);
+				if (log.isDebugEnabled()) {
+					log.debug("Result handle in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+					beginTime = System.nanoTime();
+				}
+			} catch (Throwable t) {
+				log.error("Exception occurred processing request {}{}", req.getRequestURI(),
+						req.getQueryString() != null ? req.getQueryString() : "", t);
+				handleException(context, t);
+			}
+		} finally {
+			try {
+				context.close();
+			} catch (Exception e) {
+				log.warn("Failed closing context", e);
+			}
 		}
 	}
 
 	public void handleResult(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Object resultObj) {
-		if (resultObj != null && resultObj instanceof ResultRenderer) {
-			ResultRenderer result = (ResultRenderer) resultObj;
+		if (resultObj != null && resultObj instanceof Renderer) {
+			Renderer result = (Renderer) resultObj;
 			try {
-				if (!result.renderResult(ctx, req, resp, null)) {
-					handleException(ctx, req, resp,
+				if (!result.renderResult(ctx, null)) {
+					handleException(ctx,
 							new IllegalStateException("Can't handle specified renderer: " + resultObj));
 				}
 			} catch (Exception e) {
 				log.error("Exception occurred processing result of request {}{}", req.getRequestURI(),
 						req.getQueryString() != null ? req.getQueryString() : "", e);
-				handleException(ctx, req, resp, e);
+				handleException(ctx, e);
 			}
 		} else {
 			boolean handled = false;
-			for (ResultRenderer renderer : resultRenderers) {
-				if (renderer.renderResult(ctx, req, resp, resultObj)) {
+			for (Renderer renderer : resultRenderers) {
+				if (renderer.renderResult(ctx, resultObj)) {
 					handled = true;
 					break;
 				}
@@ -204,15 +257,15 @@ public class InvokeTarget {
 			if (!handled) {
 				log.error("Exception occurred processing result of request {}{}, Can't handle specified result: {}",
 						req.getRequestURI(), req.getQueryString() != null ? req.getQueryString() : "", resultObj);
-				handleException(ctx, req, resp,
+				handleException(ctx,
 						new IllegalStateException("Can't handle specified result: " + resultObj));
 			}
 		}
 	}
 
-	public void handleException(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Throwable e) {
+	public void handleException(InvokeContext ctx, Throwable e) {
 		Class<?> exceptionType = e.getClass();
-		ResultRenderer renderer;
+		Renderer renderer;
 		do {
 			renderer = exceptionHandlers.get(exceptionType);
 			if (renderer != null) {
@@ -222,13 +275,13 @@ public class InvokeTarget {
 
 		if (renderer != null) {
 			try {
-				renderer.renderResult(ctx, req, resp, e);
+				renderer.renderResult(ctx, e);
 			} catch (Throwable ex) {
 				log.error("Exception occored handling exception: {}", e, ex);
 			}
 		} else {
 			try {
-				resp.sendError(500, "Server internal error");
+				ctx.getResponse().sendError(500, "Server internal error");
 			} catch (Throwable ex) {
 				log.warn("Can't send error page to client due to IOException, exception is {}", e, ex);
 			}

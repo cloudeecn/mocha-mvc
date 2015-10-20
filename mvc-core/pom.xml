@@ -28,6 +28,12 @@
 			<artifactId>asm-tree</artifactId>
 			<version>4.2</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>javax.inject</groupId>
+			<artifactId>javax.inject</artifactId>
+			<version>1</version>
+		</dependency>
 
 		<dependency>
 			<groupId>commons-fileupload</groupId>

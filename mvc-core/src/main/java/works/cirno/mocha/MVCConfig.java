@@ -2,32 +2,16 @@ package works.cirno.mocha;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import works.cirno.mocha.parameter.value.NamedGroupParameterSource;
-import works.cirno.mocha.parameter.value.ParameterSource;
-import works.cirno.mocha.parameter.value.RequestArrayParameterSource;
-import works.cirno.mocha.parameter.value.RequestRawSource;
-import works.cirno.mocha.parameter.value.RequestSingleParameterSource;
-import works.cirno.mocha.parameter.value.ResponseRawSource;
-import works.cirno.mocha.parameter.value.SessionParameterSource;
-import works.cirno.mocha.result.ResultRenderer;
+import works.cirno.mocha.result.Renderer;
 import works.cirno.mocha.result.ResultType;
 
 class MVCConfig implements ConfigBuilder {
-	private static final List<TypeOrInstance<ParameterSource<?>>> DEFAULT_PARAMETER_SOURCES = Arrays.asList(//
-			new TypeOrInstance<ParameterSource<?>>(RequestRawSource.class), //
-			new TypeOrInstance<ParameterSource<?>>(ResponseRawSource.class), //
-			new TypeOrInstance<ParameterSource<?>>(SessionParameterSource.class), //
-			new TypeOrInstance<ParameterSource<?>>(NamedGroupParameterSource.class), //
-			new TypeOrInstance<ParameterSource<?>>(RequestArrayParameterSource.class), //
-			new TypeOrInstance<ParameterSource<?>>(RequestSingleParameterSource.class) //
-	);
 
 	private MVCConfig parent;
 
@@ -35,16 +19,13 @@ class MVCConfig implements ConfigBuilder {
 	private String methodName;
 
 	private File uploadTemp;
-	private boolean raw;
-	private Map<Class<?>, TypeOrInstance<? extends ResultRenderer>> handlers;
-	private HashMap<Class<?>, TypeOrInstance<? extends ResultRenderer>> handlersCustom = new HashMap<>();
-	private List<TypeOrInstance<? extends ResultRenderer>> resultRenderers;
-	private List<TypeOrInstance<? extends ResultRenderer>> resultRenderersAppend = new ArrayList<>();
-	private List<TypeOrInstance<? extends ResultRenderer>> resultRenderersPrepend = new LinkedList<>();
+	private Boolean raw;
+	private Map<Class<?>, TypeOrInstance<? extends Renderer>> handlers;
+	private HashMap<Class<?>, TypeOrInstance<? extends Renderer>> handlersCustom = new HashMap<>();
+	private List<TypeOrInstance<? extends Renderer>> resultRenderers;
+	private List<TypeOrInstance<? extends Renderer>> resultRenderersAppend = new ArrayList<>();
+	private List<TypeOrInstance<? extends Renderer>> resultRenderersPrepend = new LinkedList<>();
 
-	private List<TypeOrInstance<? extends ParameterSource<?>>> parameterSources;
-	private List<TypeOrInstance<? extends ParameterSource<?>>> parameterSourcesAppend = new ArrayList<>();
-	private List<TypeOrInstance<? extends ParameterSource<?>>> parameterSourcesPrepend = new LinkedList<>();
 	private HashMap<String, ServletResultRendererConfigImpl> pendingServletResultRendererConfig = new HashMap<>();
 
 	public MVCConfig() {
@@ -66,10 +47,10 @@ class MVCConfig implements ConfigBuilder {
 		return methodName == null ? parent == null ? null : parent.getMethodName() : methodName;
 	}
 
-	Map<Class<?>, TypeOrInstance<? extends ResultRenderer>> getHandlers() {
+	Map<Class<?>, TypeOrInstance<? extends Renderer>> getHandlers() {
 		if (handlers == null) {
 			if (handlersCustom.size() == 0) {
-				handlers = parent == null ? Collections.<Class<?>, TypeOrInstance<? extends ResultRenderer>> emptyMap()
+				handlers = parent == null ? Collections.<Class<?>, TypeOrInstance<? extends Renderer>> emptyMap()
 						: parent.getHandlers();
 			} else {
 				handlers = new HashMap<>();
@@ -83,10 +64,10 @@ class MVCConfig implements ConfigBuilder {
 		return handlers;
 	}
 
-	List<TypeOrInstance<? extends ResultRenderer>> getResultRenderers() {
+	List<TypeOrInstance<? extends Renderer>> getResultRenderers() {
 		if (resultRenderers == null) {
 			if (resultRenderersAppend.size() + resultRenderersPrepend.size() == 0) {
-				resultRenderers = parent == null ? Collections.<TypeOrInstance<? extends ResultRenderer>> emptyList()
+				resultRenderers = parent == null ? Collections.<TypeOrInstance<? extends Renderer>> emptyList()
 						: parent.getResultRenderers();
 			} else {
 				resultRenderers = new ArrayList<>();
@@ -100,24 +81,6 @@ class MVCConfig implements ConfigBuilder {
 		return resultRenderers;
 	}
 
-	List<TypeOrInstance<? extends ParameterSource<?>>> getParameterSources() {
-		if (parameterSources == null) {
-			if (parameterSourcesAppend.size() + parameterSourcesPrepend.size() == 0) {
-				parameterSources = parent == null
-						? Collections.<TypeOrInstance<? extends ParameterSource<?>>> emptyList()
-						: parent.getParameterSources();
-			} else {
-				parameterSources = new ArrayList<>();
-				parameterSources.addAll(parameterSourcesPrepend);
-				if (parent != null) {
-					parameterSources.addAll(parent.getParameterSources());
-				}
-				parameterSources.addAll(parameterSourcesAppend);
-			}
-		}
-		return parameterSources;
-	}
-
 	HashMap<String, ServletResultRendererConfigImpl> getPendingServletResultRendererConfig() {
 		HashMap<String, ServletResultRendererConfigImpl> psrrConfig = new HashMap<>();
 		if (parent != null) {
@@ -128,7 +91,7 @@ class MVCConfig implements ConfigBuilder {
 	}
 
 	boolean isRaw() {
-		return raw ? true : (parent == null ? false : parent.isRaw());
+		return raw == null ? (parent == null ? false : parent.isRaw()) : raw;
 	}
 
 	File getUploadTemp() {
@@ -169,21 +132,21 @@ class MVCConfig implements ConfigBuilder {
 	}
 
 	@Override
-	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, ResultRenderer result) {
+	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, Renderer result) {
 		this.handlers.put(exception, new TypeOrInstance<>(result));
 		return this;
 	}
 
 	@Override
 	public <T extends Throwable> ConfigBuilder exception(Class<T> exception,
-			Class<? extends ResultRenderer> resultType) {
+			Class<? extends Renderer> resultType) {
 		this.handlers.put(exception, new TypeOrInstance<>(resultType));
 		return this;
 	}
 
 	@Override
 	public <T extends Throwable> ConfigBuilder exception(Class<T> exception, String resultName) {
-		this.handlers.put(exception, new TypeOrInstance<>(resultName, ResultRenderer.class));
+		this.handlers.put(exception, new TypeOrInstance<>(resultName, Renderer.class));
 		return this;
 	}
 
@@ -202,38 +165,38 @@ class MVCConfig implements ConfigBuilder {
 	}
 
 	@Override
-	public ConfigBuilder prependResultRenderer(ResultRenderer renderer) {
+	public ConfigBuilder prependResultRenderer(Renderer renderer) {
 		resultRenderersPrepend.add(0, new TypeOrInstance<>(renderer));
 		return this;
 	}
 
 	@Override
-	public ConfigBuilder prependResultRenderer(Class<? extends ResultRenderer> renderer) {
+	public ConfigBuilder prependResultRenderer(Class<? extends Renderer> renderer) {
 		resultRenderersPrepend.add(0, new TypeOrInstance<>(renderer));
 		return this;
 	}
 
 	@Override
 	public ConfigBuilder prependResultRenderer(String rendererName) {
-		resultRenderersPrepend.add(0, new TypeOrInstance<>(rendererName, ResultRenderer.class));
+		resultRenderersPrepend.add(0, new TypeOrInstance<>(rendererName, Renderer.class));
 		return this;
 	}
 
 	@Override
-	public ConfigBuilder appendResultRenderer(ResultRenderer renderer) {
+	public ConfigBuilder appendResultRenderer(Renderer renderer) {
 		resultRenderersAppend.add(new TypeOrInstance<>(renderer));
 		return this;
 	}
 
 	@Override
-	public ConfigBuilder appendResultRenderer(Class<? extends ResultRenderer> renderer) {
+	public ConfigBuilder appendResultRenderer(Class<? extends Renderer> renderer) {
 		resultRenderersAppend.add(new TypeOrInstance<>(renderer));
 		return this;
 	}
 
 	@Override
 	public ConfigBuilder appendResultRenderer(String rendererName) {
-		resultRenderersAppend.add(new TypeOrInstance<>(rendererName, ResultRenderer.class));
+		resultRenderersAppend.add(new TypeOrInstance<>(rendererName, Renderer.class));
 		return this;
 	}
 

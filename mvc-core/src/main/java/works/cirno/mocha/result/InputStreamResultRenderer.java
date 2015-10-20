@@ -4,15 +4,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import works.cirno.mocha.InvokeContext;
 
-public class InputStreamResultRenderer implements ResultRenderer {
+public class InputStreamResultRenderer implements Renderer {
 
 	@Override
-	public boolean renderResult(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Object resultObj) {
+	public boolean renderResult(InvokeContext ctx, Object resultObj) {
+		HttpServletResponse resp = ctx.getResponse();
 		if (resultObj instanceof InputStream) {
 			try (InputStream is = (InputStream) resultObj; OutputStream os = resp.getOutputStream()) {
 				byte[] buf = new byte[4096];

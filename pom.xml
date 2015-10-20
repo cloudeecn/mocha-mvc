@@ -34,8 +34,7 @@
 		<module>mvc-core</module>
 		<module>mvc-inject-spring</module>
 		<module>mvc-inject-guice</module>
-		<module>example-with-spring</module>
-		<module>example-with-guice</module>
+		<module>example</module>
 	</modules>
 	<dependencies>
 		<dependency>

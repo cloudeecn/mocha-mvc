@@ -1,10 +1,14 @@
 package works.cirno.mocha.parameter.value;
 
 import works.cirno.mocha.InvokeContext;
+import works.cirno.mocha.parameter.name.Parameter;
 
-public interface ParameterSource<T> {
+public interface ParameterSource {
+	static final Object NOT_HERE = new Object(){
+		public String toString() {
+			return "NOT_HERE";
+		};
+	};
 
-	Class<T> supportsType();
-
-	T getParameter(InvokeContext ctx, String key);
+	Object getParameterValue(InvokeContext ctx, Parameter parameter);
 }

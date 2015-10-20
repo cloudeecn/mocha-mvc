@@ -7,9 +7,6 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
 
-import works.cirno.mocha.MVCConfigurator;
-import works.cirno.mocha.ObjectFactory;
-
 @Singleton
 public class GuiceMVCFactory implements ObjectFactory {
 
@@ -21,17 +18,15 @@ public class GuiceMVCFactory implements ObjectFactory {
 	}
 
 	@Override
-	public <T> T getInstance(Class<T> clazz) {
-		return injector.getInstance(clazz);
-	}
-
-	@Override
-	public <T extends MVCConfigurator> T getMVCConfiguratorInstance(Class<T> clazz) {
-		return injector.getInstance(clazz);
-	}
-
-	@Override
-	public Object getInstance(String name) {
-		return injector.getInstance(Key.get(Object.class, Names.named(name)));
+	public <T> T getInstance(TypeOrInstance<T> param) {
+		switch (param.getInjectBy()) {
+		case INSTANCE:
+			return param.getInstance();
+		case NAME_TYPE:
+			return injector.getInstance(Key.get(param.getType(), Names.named(param.getName())));
+		case TYPE:
+			return injector.getInstance(param.getType());
+		}
+		throw new UnsupportedOperationException("Unknown injection type " + param.getInjectBy());
 	}
 }
