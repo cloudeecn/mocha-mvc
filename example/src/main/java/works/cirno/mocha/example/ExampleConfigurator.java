@@ -10,29 +10,27 @@ public class ExampleConfigurator extends MVCConfigurator {
 	@Override
 	public void configure() {
 
+		// Extract common parameters
 		all(new Runnable() {
 
 			@Override
 			public void run() {
-				serve("/profile/${name}")
-						.withMethod("index")
-						.forward("success").to("/WEB-INF/jsp/profile.jsp");
-
-				serve("/profile/${name}/photo", "GET")
-						.withMethod("photo");
-
-				serve("/profile/${name}/photo", "POST")
-						.withMethod("upload")
-						.raw();
+				serve("/parameter").withMethod("index").forward("success").to("/WEB-INF/jsp/parameter.jsp");
+				serve("/parameter/show")
+						.withMethod("show")
+						.forward("success").to("/WEB-INF/jsp/parameter-show.jsp");
 			}
-		}).with(ProfileController.class);
+		}).with(ParameterController.class);
 
-		serve("/parameter")
-				.with(ParameterController.class, "index")
-				.forward("success").to("/WEB-INF/jsp/parameter.jsp");
+		// Restful styled APIs
+		// TODO 
+		serve("/parameter/\\+${userId}").with(ParameterController.class, "user")
+				.forward("success").to("/WEB-INF/jsp/parameter-rest.jsp");
 
-		serve("/parameter/show")
-				.with(ParameterController.class, "show")
-				.forward("success").to("/WEB-INF/jsp/parameter-show.jsp");
+		serve("/parameter/\\+${userId}", "POST").with(ParameterController.class, "userPost");
+
+		serve("/parameter/\\+${userId}.json")
+				.with(ParameterController.class, "userJson");
+
 	}
 }

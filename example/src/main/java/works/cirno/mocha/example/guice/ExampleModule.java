@@ -4,7 +4,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 
-import works.cirno.mocha.example.ProfileController;
 import works.cirno.mocha.example.UserService;
 import works.cirno.mocha.example.UserServiceImpl;
 

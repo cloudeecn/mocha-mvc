@@ -7,7 +7,7 @@ import java.net.URLEncoder;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 
-public class TitledUser {
+public class User {
 	private String username;
 	private String title;
 	private String firstName;

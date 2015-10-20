@@ -34,6 +34,7 @@ import works.cirno.mocha.result.ServletResultRenderer;
 public abstract class Dispatcher {
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
+	private final Logger perfLog = LoggerFactory.getLogger("perf." + Dispatcher.class.getName());
 
 	protected ServletContext servletContext;
 	protected Map<String, String> initParameters;
@@ -97,7 +98,7 @@ public abstract class Dispatcher {
 				resultRenderers.add(factory.getInstance(type));
 			}
 
-			Map<Class<?>, TypeOrInstance<? extends Renderer>> handlerTypes = cbi.getHandlers();
+			Map<Class<?>, TypeOrInstance<? extends Renderer>> handlerTypes = cbi.getExceptionHandlers();
 			HashMap<Class<?>, Renderer> handlers = new HashMap<>();
 			for (Entry<Class<?>, TypeOrInstance<? extends Renderer>> entry : handlerTypes.entrySet()) {
 				handlers.put(entry.getKey(), factory.getInstance(entry.getValue()));
@@ -136,7 +137,7 @@ public abstract class Dispatcher {
 				m.appendTail(newPath);
 				path = newPath.toString();
 			}
-			InvokeTargetCriteria criteria = invokeTargetResolver.addServe(cbi.getPath(), cbi.getMethod(), target);
+			InvokeTargetCriteria criteria = invokeTargetResolver.addServe(path, cbi.getMethod(), target);
 			target.setGroupNames(criteria.getGroupNames());
 		}
 
@@ -150,13 +151,13 @@ public abstract class Dispatcher {
 	protected boolean invoke(HttpServletRequest req, HttpServletResponse resp) {
 		String uri = req.getRequestURI().substring(req.getContextPath().length());
 		long beginTime = 0;
-		if (log.isDebugEnabled()) {
-			log.debug("Dispatching {}", uri);
+		if (perfLog.isDebugEnabled()) {
+			perfLog.debug("Dispatching {}", uri);
 			beginTime = System.nanoTime();
 		}
 		InvokeContext ctx = invokeTargetResolver.resolve(uri, req.getMethod());
-		if (log.isDebugEnabled()) {
-			log.debug("Target resolved in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+		if (perfLog.isDebugEnabled()) {
+			perfLog.debug("Target resolved in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
 		}
 		if (ctx != null) {
 			ctx.setRequest(req);

@@ -41,6 +41,7 @@ public class InvokeTarget {
 	}
 
 	private final Logger log;
+	private final Logger perfLog = LoggerFactory.getLogger("perf." + InvokeTarget.class.getName());
 
 	// private final Invoker invoker;
 	// private final Class<?> controllerClass;
@@ -145,8 +146,8 @@ public class InvokeTarget {
 
 	public void invoke(String uri, InvokeContext context) {
 		long beginTime = 0;
-		if (log.isDebugEnabled()) {
-			log.debug("Invoking {}", uri);
+		if (perfLog.isDebugEnabled()) {
+			perfLog.debug("Invoking {}", uri);
 			beginTime = System.nanoTime();
 		}
 		try {
@@ -173,8 +174,8 @@ public class InvokeTarget {
 				} catch (FileUploadException e) {
 					throw new RuntimeException(e);
 				}
-				if (log.isDebugEnabled()) {
-					log.debug("Parse multipart in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+				if (perfLog.isDebugEnabled()) {
+					perfLog.debug("Parse multipart in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
 					beginTime = System.nanoTime();
 				}
 			}
@@ -204,19 +205,19 @@ public class InvokeTarget {
 						req.getQueryString() != null ? req.getQueryString() : "", t);
 				handleException(context, t);
 			}
-			if (log.isDebugEnabled()) {
-				log.debug("Parameter resolve in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+			if (perfLog.isDebugEnabled()) {
+				perfLog.debug("Parameter resolve in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
 				beginTime = System.nanoTime();
 			}
 			try {
 				Object result = method.invoke(controller, invokeParams);
-				if (log.isDebugEnabled()) {
-					log.debug("Controller execution in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+				if (perfLog.isDebugEnabled()) {
+					perfLog.debug("Controller execution in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
 					beginTime = System.nanoTime();
 				}
 				handleResult(context, req, resp, result);
-				if (log.isDebugEnabled()) {
-					log.debug("Result handle in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
+				if (perfLog.isDebugEnabled()) {
+					perfLog.debug("Result handle in {}ms", (System.nanoTime() - beginTime) / 1000000.0f);
 					beginTime = System.nanoTime();
 				}
 			} catch (Throwable t) {
@@ -234,7 +235,9 @@ public class InvokeTarget {
 	}
 
 	public void handleResult(InvokeContext ctx, HttpServletRequest req, HttpServletResponse resp, Object resultObj) {
-		if (resultObj != null && resultObj instanceof Renderer) {
+		if (resultObj == null) {
+			return;
+		} else if (resultObj instanceof Renderer) {
 			Renderer result = (Renderer) resultObj;
 			try {
 				if (!result.renderResult(ctx, null)) {

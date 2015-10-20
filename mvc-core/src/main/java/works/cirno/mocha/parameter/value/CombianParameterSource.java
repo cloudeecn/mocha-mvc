@@ -9,8 +9,9 @@ import works.cirno.mocha.InvokeContext;
 import works.cirno.mocha.parameter.name.Parameter;
 
 public class CombianParameterSource implements ParameterSource {
-	
+
 	private static final Logger log = LoggerFactory.getLogger(CombianParameterSource.class);
+	private static final Logger perfLog = LoggerFactory.getLogger("perf." + CombianParameterSource.class.getName());
 
 	private Collection<ParameterSource> sources;
 
@@ -32,8 +33,16 @@ public class CombianParameterSource implements ParameterSource {
 
 	@Override
 	public Object getParameterValue(InvokeContext ctx, Parameter parameter) {
+		long paramBeginTime = 0;
 		for (ParameterSource source : sources) {
+			if (perfLog.isDebugEnabled()) {
+				paramBeginTime = System.nanoTime();
+			}
 			Object value = source.getParameterValue(ctx, parameter);
+			if (perfLog.isDebugEnabled()) {
+				perfLog.debug("Resolve parameter[{}] by {} in {}ms", parameter.getType().getName(),
+						source.getClass().getName(), (System.nanoTime() - paramBeginTime) / 1000000f);
+			}
 			log.debug("Getting parameter {}, result {}", parameter, value);
 			if (value != NOT_HERE) {
 				return value;

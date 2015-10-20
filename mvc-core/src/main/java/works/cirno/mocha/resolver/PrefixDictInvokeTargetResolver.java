@@ -101,7 +101,7 @@ public class PrefixDictInvokeTargetResolver implements InvokeTargetResolver {
 		for (int i = prefixMatches.size() - 1; i >= 0; i--) {
 			PrefixedInvokeTargetCriteria criteria = prefixMatches.get(i);
 			Matcher matcher = criteria.getPattern().matcher(uri.substring(criteria.getPrefix().length()));
-			if (matcher.matches()) {
+			if ((criteria.getMethod() == null || criteria.getMethod().equals(method)) && matcher.matches()) {
 				return new InvokeContext(criteria.getTarget(), matcher, criteria.getGroupNames());
 			}
 		}

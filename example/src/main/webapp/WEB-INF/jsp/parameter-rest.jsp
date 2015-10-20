@@ -15,7 +15,8 @@ iframe {
   <div class="container">
     <div class="row">
       <div class="col-xs-12 col-md-6">
-        <form id="form1" action="parameter/show" method="post" target="frame" enctype="multipart/form-data">
+        Hello ${userId}! <br/>
+        <form id="form1" method="post" target="frame" enctype="multipart/form-data">
           <div class="form-group">
             <label for="user.username">Username</label>
             <input name="user.username" type="text" class="form-control">

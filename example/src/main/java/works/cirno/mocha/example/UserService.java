@@ -1,5 +1,8 @@
 package works.cirno.mocha.example;
 
 public interface UserService {
-	String getUserHash(TitledUser user);
+
+	void saveUser(String userId, User user);
+
+	User getUser(String userId);
 }

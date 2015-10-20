@@ -14,26 +14,26 @@ iframe {
 <body>
   <p>User1:</p>
   <ul>
-    <c:if test="${not empty user1.username}">
-      <li>username=${user1.username}</li>
+    <c:if test="${not empty user.username}">
+      <li>username=${user.username}</li>
     </c:if>
-    <c:if test="${not empty user1.title}">
-      <li>title=${user1.title}</li>
+    <c:if test="${not empty user.title}">
+      <li>title=${user.title}</li>
     </c:if>
-    <c:if test="${not empty user1.firstName}">
-      <li>firstName=${user1.firstName}</li>
+    <c:if test="${not empty user.firstName}">
+      <li>firstName=${user.firstName}</li>
     </c:if>
-    <c:if test="${not empty user1.lastName}">
-      <li>lastName=${user1.lastName}</li>
+    <c:if test="${not empty user.lastName}">
+      <li>lastName=${user.lastName}</li>
     </c:if>
-    <c:if test="${not empty user1.tel}">
-      <li>tel=${user1.tel}</li>
+    <c:if test="${not empty user.tel}">
+      <li>tel=${user.tel}</li>
     </c:if>
-    <c:if test="${not empty user1.income}">
-      <li>tel=${user1.income}</li>
+    <c:if test="${not empty user.income}">
+      <li>tel=${user.income}</li>
     </c:if>
-    <c:if test="${not empty user1.photoUrl}">
-      <li><img src="${user1.photoUrl}" /></li>
+    <c:if test="${not empty user.photoUrl}">
+      <li><img src="${user.photoUrl}" /></li>
     </c:if>
   </ul>
 </body>

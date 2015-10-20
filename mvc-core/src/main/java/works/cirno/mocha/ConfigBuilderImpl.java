@@ -44,7 +44,7 @@ class ConfigBuilderImpl implements ConfigBuilder {
 		return config.getMethodName();
 	}
 
-	Map<Class<?>, TypeOrInstance<? extends Renderer>> getHandlers() {
+	Map<Class<?>, TypeOrInstance<? extends Renderer>> getExceptionHandlers() {
 		return config.getHandlers();
 	}
 
