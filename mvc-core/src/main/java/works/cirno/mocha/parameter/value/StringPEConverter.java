@@ -14,7 +14,7 @@ public class StringPEConverter extends AbstractStringArrayConverter {
 
 	@Override
 	public Object convertOne(Class<?> type, InvokeContext ctx, Object from) {
-		if (from != null && from.getClass() != String.class) {
+		if (from != null && !(from instanceof String)) {
 			return NOT_CONVERTABLE;
 		}
 		PropertyEditor pe = PropertyEditorManager.findEditor(type);

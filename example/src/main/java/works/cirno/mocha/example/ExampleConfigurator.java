@@ -22,14 +22,13 @@ public class ExampleConfigurator extends MVCConfigurator {
 			}
 		}).with(ParameterController.class);
 
-		// Restful styled APIs
-		// TODO 
-		serve("/parameter/\\+${userId}").with(ParameterController.class, "user")
+		// Restful styled APIs with simple expression
+		serve("/parameter/+${userId}").with(ParameterController.class, "user")
 				.forward("success").to("/WEB-INF/jsp/parameter-rest.jsp");
 
-		serve("/parameter/\\+${userId}", "POST").with(ParameterController.class, "userPost");
+		serve("/parameter/+${userId}", "POST").with(ParameterController.class, "userPost");
 
-		serve("/parameter/\\+${userId}.json")
+		serve("/parameter/+${userId}.json")
 				.with(ParameterController.class, "userJson");
 
 	}

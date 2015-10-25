@@ -44,6 +44,7 @@ public abstract class Dispatcher {
 	protected ObjectFactory factory;
 
 	protected final static Pattern pattern = Pattern.compile("\\$\\{(.*?)\\}");
+	protected final static Pattern regexMeta = Pattern.compile("[$*+?.|\\^\\{\\}\\[\\]\\(\\)\\\\]");
 
 	protected Collection<ParameterAnalyzer> getParameterAnalyzers() {
 		return Arrays.asList(
@@ -125,20 +126,47 @@ public abstract class Dispatcher {
 			target.setParameters(parameters);
 
 			String path = cbi.getPath();
-			/*
-			 * Convert ${xxx} to (?<xxx>.*?)
-			 */
-			Matcher m = pattern.matcher(path);
-			if (m.find()) {
-				StringBuffer newPath = new StringBuffer(path.length() + 30);
-				do {
-					m.appendReplacement(newPath, "(?<$1>.*?)");
-				} while (m.find());
-				m.appendTail(newPath);
-				path = newPath.toString();
+			if (!cbi.isPathRegex()) {
+				int lastPos = 0;
+				/*
+				 * Convert ${xxx} to (?<xxx>.*?)
+				 */
+				Matcher m = pattern.matcher(path);
+				if (m.find()) {
+					StringBuffer newPath = new StringBuffer(path.length() + 30);
+
+					do {
+						int pos = m.start();
+
+						// before
+						if (lastPos != pos) {
+							String before = path.substring(lastPos, pos);
+							Matcher matcherBefore = regexMeta.matcher(before);
+							while (matcherBefore.find()) {
+								matcherBefore.appendReplacement(newPath, "\\\\$0");
+							}
+							matcherBefore.appendTail(newPath);
+						}
+
+						// replacement
+						newPath.append("(?<").append(m.group(1)).append(">.*?)");
+						lastPos = m.end();
+					} while (m.find());
+					if(lastPos < path.length()){
+						// after
+						String after = path.substring(lastPos);
+						Matcher matcherAfter = regexMeta.matcher(after);
+						while (matcherAfter.find()) {
+							matcherAfter.appendReplacement(newPath, "\\\\$0");
+						}
+						matcherAfter.appendTail(newPath);
+					}
+					path = newPath.toString();
+				}
 			}
 			InvokeTargetCriteria criteria = invokeTargetResolver.addServe(path, cbi.getMethod(), target);
 			target.setGroupNames(criteria.getGroupNames());
+
 		}
 
 		Long perfStartTime = (Long) sc.getAttribute(StartupPerformanceListener.KEY_PERF_START);

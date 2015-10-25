@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import works.cirno.mocha.parameter.value.ParameterSource;
 import works.cirno.mocha.result.Renderer;
 
 /**
@@ -15,14 +14,15 @@ class ConfigBuilderImpl implements ConfigBuilder {
 
 	private String path;
 	private String method;
+	private boolean pathRegex;
 
 	private MVCConfig config;
 
-	ConfigBuilderImpl(String path, MVCConfig parent) {
-		this(path, null, parent);
+	ConfigBuilderImpl(String path, boolean pathRegex, MVCConfig parent) {
+		this(path, pathRegex, null, parent);
 	}
 
-	ConfigBuilderImpl(String path, String method, MVCConfig parent) {
+	ConfigBuilderImpl(String path, boolean pathRegex, String method, MVCConfig parent) {
 		this.path = path;
 		this.method = method;
 		this.config = new MVCConfig(parent);
@@ -30,6 +30,10 @@ class ConfigBuilderImpl implements ConfigBuilder {
 
 	String getPath() {
 		return path;
+	}
+
+	boolean isPathRegex() {
+		return pathRegex;
 	}
 
 	String getMethod() {

@@ -16,7 +16,7 @@ iframe {
     <div class="row">
       <div class="col-xs-12 col-md-6">
         Hello ${userId}! <br/>
-        <form id="form1" method="post" target="frame" enctype="multipart/form-data">
+        <form id="form1" method="post" target="frame">
           <div class="form-group">
             <label for="user.username">Username</label>
             <input name="user.username" type="text" class="form-control">
@@ -40,10 +40,6 @@ iframe {
           <div class="form-group">
             <label for="user.income">Income</label>
             <input name="user.income" type="text" class="form-control">
-          </div>
-          <div class="form-group">
-            <label for="user.photo">photo</label>
-            <input name="user.photo" type="file" class="form-control">
           </div>
           <button class="btn btn-primary" type="submit">Submit</button>
         </form>

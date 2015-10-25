@@ -26,15 +26,31 @@ public abstract class MVCConfigurator {
 	 * This is beginning of a configuration entry, that serves a path in this
 	 * application <br/>
 	 * A configuration entry looks like this: <br/>
-	 * serve("/login").with(LoginController.class,
-	 * "loginPage").forward("success").to("/pages/login.jsp")
+	 * <code>
+	 * 	serve("/login").with(LoginController.class, "loginPage").forward("success").to("/pages/login.jsp")
+	 * </code>
+	 *
+	 * <p>
+	 * You can use a simple expression ${parameterName} in path, to make part of
+	 * the URL a parameter candidate
+	 * </p>
+	 * 
+	 * <p>
+	 * <strong>For example:</strong>
+	 * </p>
+	 * With following configuration code:<br />
+	 * <code> serve("/user/${name}")... </code><br />
+	 * And following controller method:<br />
+	 * <code> public void example(String name){ </code><br />
+	 * When you acccess /user/somename, the <i>name</i> parameter will have
+	 * value <i>somename</i>
 	 * 
 	 * @param path
 	 *            The path to serve
 	 * @return a ConfigBuilder for further configuration
 	 */
 	protected ConfigBuilder serve(String path) {
-		ConfigBuilderImpl builder = new ConfigBuilderImpl(path, config);
+		ConfigBuilderImpl builder = new ConfigBuilderImpl(path, false, config);
 		configBuilders.add(builder);
 		return builder;
 	}
@@ -42,10 +58,27 @@ public abstract class MVCConfigurator {
 	/**
 	 * This is beginning of a configuration entry, that serves a path in this
 	 * application <br/>
-	 * Likes serve(String path) but this one will serve only specified method,
-	 * like GET, POST etc. A configuration entry looks like this: <br/>
-	 * serve("/login", "GET").with(LoginController.class,
-	 * "loginPage").forward("success").to("/pages/login.jsp")
+	 * This is like <code>serve(String path)</code> but this one will serve only
+	 * specified method, like GET, POST etc. A configuration entry looks like
+	 * this: <br/>
+	 * <code>
+	 * 	serve("/login", "GET").with(LoginController.class, "loginPage").forward("success").to("/pages/login.jsp")
+	 * </code>
+	 * 
+	 * <p>
+	 * You can use a simple expression ${parameterName} in path, to make part of
+	 * the URL a parameter candidate
+	 * </p>
+	 * 
+	 * <p>
+	 * <strong>For example:</strong>
+	 * </p>
+	 * With following configuration code:<br/>
+	 * <code> serve("/user/${name}")... </code><br/>
+	 * And following controller method:<br/>
+	 * <code> public void example(String name){ </code><br/>
+	 * When you acccess /user/somename, the <i>name</i> parameter will have
+	 * value <i>somename</i>
 	 * 
 	 * @param path
 	 *            The path to serve
@@ -54,7 +87,83 @@ public abstract class MVCConfigurator {
 	 * @return a ConfigBuilder for further configuration
 	 */
 	protected ConfigBuilder serve(String path, String method) {
-		ConfigBuilderImpl builder = new ConfigBuilderImpl(path, method, config);
+		ConfigBuilderImpl builder = new ConfigBuilderImpl(path, false, method, config);
+		configBuilders.add(builder);
+		return builder;
+	}
+
+	/**
+	 * This is beginning of a configuration entry, that serves a path in this
+	 * application <br/>
+	 * A configuration entry looks like this: <br/>
+	 * <code>
+	 * serve("/login").with(LoginController.class, "loginPage").forward("success").to("/pages/login.jsp")
+	 * </code>
+	 * 
+	 * <p>
+	 * You can use Regular Expression in path, and named groups in the
+	 * expression is considered as a parameter candidate
+	 * </p>
+	 * 
+	 * <p>
+	 * <strong>For example:</strong>
+	 * </p>
+	 * With following configuration code:<br/>
+	 * <code> serve("/user/(?<name>.*?)")... <code><br/>
+	 * And following controller method:<br/>
+	 * <code> public void example(String name){ <code><br/>
+	 * When you acccess /user/somename, the <i>name</i> parameter will have
+	 * value <i>somename</i>
+	 * 
+	 * @param path
+	 *            The path to serve
+	 * @return a ConfigBuilder for further configuration
+	 */
+	protected ConfigBuilder servePattern(String path) {
+		ConfigBuilderImpl builder = new ConfigBuilderImpl(path, true, config);
+		configBuilders.add(builder);
+		return builder;
+
+	}
+
+	/**
+	 * This is beginning of a configuration entry, that serves a path in this
+	 * application <br/>
+	 * This is like <code>serve(String path)</code> but this one will serve only
+	 * specified method, like GET, POST etc. A configuration entry looks like
+	 * this: <br/>
+	 * <code>
+	 * 	serve("/login", "GET").with(LoginController.class, "loginPage").forward("success").to("/pages/login.jsp")
+	 * </code>
+	 * 
+	 * <p>
+	 * You can use a simple expression ${parameterName} in path, to make part of
+	 * the URL a parameter candidate
+	 * </p>
+	 * 
+	 * <p>
+	 * You can use Regular Expression in path, and named groups in the
+	 * expression is considered as a parameter candidate
+	 * </p>
+	 * 
+	 * <p>
+	 * <strong>For example:</strong>
+	 * </p>
+	 * With following configuration code:<br/>
+	 * <code> serve("/user/(?<name>.*?)")... <code><br/>
+	 * And following controller method:<br/>
+	 * <code> public void example(String name){ <code><br/>
+	 * When you acccess /user/somename, the <i>name</i> parameter will have
+	 * value <i>somename</i>
+	 * 
+	 * @param path
+	 *            The path to serve
+	 * @param method
+	 *            The method to serve (GET, POST, PUT etc.)
+	 * @return a ConfigBuilder for further configuration
+	 */
+	protected ConfigBuilder servePattern(String path, String method) {
+		ConfigBuilderImpl builder = new ConfigBuilderImpl(path, true, method, config);
 		configBuilders.add(builder);
 		return builder;
 	}
