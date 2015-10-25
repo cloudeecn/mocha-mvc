@@ -9,6 +9,10 @@
 	<artifactId>example</artifactId>
 	<name>Mocha MVC example with Spring ans Guice</name>
 	<packaging>war</packaging>
+	
+	<properties>
+		<maven.deploy.skip>true</maven.deploy.skip>
+	</properties>
 
 	<dependencies>
 		<dependency>
