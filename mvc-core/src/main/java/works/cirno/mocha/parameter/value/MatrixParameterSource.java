@@ -11,6 +11,7 @@ import works.cirno.mocha.parameter.name.Parameter;
 public class MatrixParameterSource implements ParameterSource {
 
 	private static final Logger log = LoggerFactory.getLogger(MatrixParameterSource.class);
+	private static final Logger perfLog = LoggerFactory.getLogger("perf." + MatrixParameterSource.class.getName());
 
 	private List<ValueSource> sources;
 	private List<ValueConverter> converters;
@@ -33,16 +34,33 @@ public class MatrixParameterSource implements ParameterSource {
 
 	@Override
 	public Object getParameterValue(InvokeContext ctx, Parameter parameter) {
+		long beginTime = 0;
+		boolean usePerfLog = perfLog.isDebugEnabled();
 		Class<?> type = parameter.getType();
 		String name = parameter.getName();
 		for (ValueSource source : sources) {
+			if (usePerfLog) {
+				beginTime = System.nanoTime();
+			}
 			Object sourceValue = source.getParameter(ctx, name);
+			if (usePerfLog) {
+				perfLog.debug("Get parameter-value named[{}] from source {} in {}ms", parameter.getName(),
+						source.getClass().getName(), (System.nanoTime() - beginTime) / 1000000f);
+			}
 			log.debug("Get parameter[{}]({}) from {}: {}", name, type.getName(), source.getClass().getName(),
 					sourceValue);
 			if (sourceValue != ValueSource.NOT_FOUND) {
+
 				Object value = ValueConverter.NOT_CONVERTABLE;
 				for (ValueConverter converter : converters) {
+					if (usePerfLog) {
+						beginTime = System.nanoTime();
+					}
 					value = converter.convert(type, ctx, sourceValue);
+					if (usePerfLog) {
+						perfLog.debug("Convert parameter-value named[{}] by converter {} in {}ms", parameter.getName(),
+								converter.getClass().getName(), (System.nanoTime() - beginTime) / 1000000f);
+					}
 					if (value != ValueConverter.NOT_CONVERTABLE) {
 						return value;
 					}
