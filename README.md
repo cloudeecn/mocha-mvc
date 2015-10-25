@@ -17,102 +17,94 @@ It works well with [Spring](https://spring.io) and Guice, also it can work with 
 
 There are only 4 steps start a new project with Mocha MVC, no DIs are required.
 
- 1. Create a maven ( packaging war of course ) project, add following code in pom.xml
+ 1) Create a maven ( packaging war of course ) project, add following code in pom.xml
 
 ``` xml
-
-	<repositories>
-		<repository>
-			<id>cw-releases</id>
-			<name>Cirnoworks Releases</name>
-			<url>http://repo1.cirnoworks.com/releases/</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-			<layout>default</layout>
-		</repository>
-		<repository>
-			<id>cw-snapshots</id>
-			<name>Cirnoworks Snapshots</name>
-			<url>http://repo1.cirnoworks.com/snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-			<layout>default</layout>
-		</repository>
-	</repositories>
-	<dependencies>
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
-			<version>3.0.1</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<!-- You can change to your favorite logger -->
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
-			<version>1.7.12</version>
-		</dependency>
-		<dependency>
-			<groupId>works.cirno.mocha</groupId>
-			<artifactId>mvc-core</artifactId>
-			<version>0.1-SNAPSHOT</version>
-		</dependency>
-	</dependencies>
-
+<repositories>
+	<repository>
+		<id>cw-releases</id>
+		<name>Cirnoworks Releases</name>
+		<url>http://repo1.cirnoworks.com/releases/</url>
+		<releases>
+			<enabled>true</enabled>
+		</releases>
+		<snapshots>
+			<enabled>false</enabled>
+		</snapshots>
+		<layout>default</layout>
+	</repository>
+	<repository>
+		<id>cw-snapshots</id>
+		<name>Cirnoworks Snapshots</name>
+		<url>http://repo1.cirnoworks.com/snapshots/</url>
+		<releases>
+			<enabled>false</enabled>
+		</releases>
+		<snapshots>
+			<enabled>true</enabled>
+		</snapshots>
+		<layout>default</layout>
+	</repository>
+</repositories>
+<dependencies>
+	<dependency>
+		<groupId>javax.servlet</groupId>
+		<artifactId>javax.servlet-api</artifactId>
+		<version>3.0.1</version>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<!-- You can change to your favorite logger -->
+		<groupId>org.slf4j</groupId>
+		<artifactId>slf4j-simple</artifactId>
+		<version>1.7.12</version>
+	</dependency>
+	<dependency>
+		<groupId>works.cirno.mocha</groupId>
+		<artifactId>mvc-core</artifactId>
+		<version>0.1-SNAPSHOT</version>
+	</dependency>
+</dependencies>
 ```
 
-2. Create Controller class
+ 2) Create Controller class
 
 ``` java
+package example;
 
-	package example;
-	
-	import works.cirno.mocha.*;
-	
-	public class HelloController {
-		void hello(PrintWriter writer, String name){
-			writer.print("Hello " + name);
-		}
+import works.cirno.mocha.*;
+
+public class HelloController {
+	void hello(PrintWriter writer, String name){
+		writer.print("Hello " + name);
 	}
-
+}
 ```
 
-3. Create Configurator class
+ 3) Create Configurator class
 
 ``` java
+package example;
 
-	package example;
-	
-	import works.cirno.mocha.*;
-	
-	public class HelloConfigurator extends MVCConfigurator {
-		public void configure(){
-			serve("/hello/${name}").with(HelloController.class, "hello");
-		}
+import works.cirno.mocha.*;
+
+public class HelloConfigurator extends MVCConfigurator {
+	public void configure(){
+		serve("/hello/${name}").with(HelloController.class, "hello");
 	}
-
+}
 ```
 
-4. Add Mocha's dispatcher filter into web.xml
+ 4) Add Mocha's dispatcher filter into web.xml
 ``` xml
-
-	<filter>
-		<filter-name>dispatcher</filter-name>
-		<filter-class>works.cirno.mocha.DispatcherFilter</filter-class>
-		<init-param>
-			<param-name>configurator</param-name>
-			<param-value>example.HelloController</param-value>
-		</init-param>
-	</filter>
-
+<filter>
+	<filter-name>dispatcher</filter-name>
+	<filter-class>works.cirno.mocha.DispatcherFilter</filter-class>
+	<init-param>
+		<param-name>configurator</param-name>
+		<param-value>example.HelloController</param-value>
+	</init-param>
+</filter>
 ``` 
 
 Run it! Access /hello/YourName under your contextPath from browser, the result will be "Hello YourName"
